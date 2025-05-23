@@ -1,0 +1,2 @@
+include src/md2splunk/static/*
+recursive-include src/md2splunk/static *

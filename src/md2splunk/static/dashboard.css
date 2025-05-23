@@ -1,0 +1,261 @@
+/* 
+Brand colors: 
+* Pink: #EE0884
+* Orange: #F56A00
+* Yellow: #F0D318
+* Mauve: #AB006B
+* Dark orange: #C83C10
+* Dark yellow: #F99D1C
+* Light gray: #E6E6E6
+* Dark gray: #7F7F7F
+
+Extended colors: 
+Dark blue: #006AAD
+Light blue: #00ACD9
+Dark violet: #662D91 
+Light violet: #9442DE
+Dark teal: #0096A1
+Light teal: #02C7A9
+*/
+
+/* This is the container */
+.dashboard {
+    font-size: 18px;
+    /* max-width: 2500px !important; */
+    width: 1080px;
+    line-height: normal;
+}
+/* This is content within the container */
+/* .panel-element-row {
+    font-size: 18px;
+    /* max-width: 2500px !important; */
+    /* width: 1080px; */
+/*} */
+
+p {
+    font-size:18px; 
+    padding:1px;
+    line-height: 1.25; 
+}
+
+ol {
+    font-size:18px; 
+    padding:1px;
+    margin-bottom: 0;
+}
+
+ul {
+    font-size:18px; 
+    padding:1px;
+}
+
+li {
+    margin: 4px 0 4px 0;
+}
+
+img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+div.panel-body h1 {
+    font-size:36px;
+    /* Splunk brand primary color*/
+    color:#ee0884; 
+    padding:2px;
+}
+
+.dashboard-title, .dashboard-header-title {
+    color: black !important;
+    display: none;
+}
+
+.dashboard-header, .dashboard-header-dashboardheader {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+div.panel-body h2 {
+    font-size:32px; 
+    /* Splunk Web UI green */
+    /* color:#64a637;  */
+    /* Splunk orange */
+    color: #F56A00;
+    font-style:bold; 
+    padding:2px;
+    margin-top: 25px;
+}
+
+/* TODO DYAMICALLY GENERATE CLASS FOR TASKS */
+div.panel-body h3 {
+    font-size:28px;
+    padding:2px;
+    /* border-bottom: 1px solid black; */
+    margin-top: 25px;
+}
+
+div.panel-body h4 {
+    font-size:24px;
+    padding:2px;
+}
+
+div.panel-body h5 {
+    font-size:20px;
+    padding:2px;
+}
+
+pre {
+    background-color: #303030;
+}
+
+pre code {
+    color: white;
+    font-size:18px; 
+    padding:1px;
+}
+
+code { 
+    cursor: pointer; 
+    /* white-space: pre-wrap;  */
+    /* padding: 10px; */
+    /* border: 1px solid #ccc; */
+    /* background-color: #f4f4f4; */
+    font-size: 18px;
+    color: black;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+code:hover {
+    background-color: #EE0884;
+}
+
+
+/* TABLE STYLES */
+table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    /* min-width: 400px; */
+    width: 100%;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+thead tr {
+    background-color: #303030;
+    color: white;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px 15px;
+}
+
+tbody tr {
+    border-bottom: 1px solid #202020;
+}
+
+tbody tr:nth-of-type(even) {    
+    /* Splunk brand */
+    background-color: #E6E6E6;
+}
+
+tbody tr:last-of-type {
+    /* Splunk brand */
+    border-bottom: 2px solid #606060;
+}
+
+
+/* ADMONITION STYLES */
+.admonition {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #E6E6E6;
+    border: solid 1px #7F7F7F;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap:5px;
+    /*grid-gap: 10px;*/
+    align-items: flex-start;
+}
+
+.admonition-title {
+    font-weight: bold;
+    padding-left: 5px;
+    padding-right: 5px;
+    white-space: nowrap;
+    vertical-align: top;
+    display: inline-block;
+    /* margin-top: 0; */
+    /* margin-bottom: 0; */
+}
+
+.admonition p {
+    margin: 0;
+    padding-left: 10px;
+    padding-top: 4px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.admonition.info {
+    /* Splunk brand secondary color */
+    border-color: #296aa8;
+    background-color: #dbe4ef; 
+}
+
+.admonition.caution {
+    /* Splunk brand yellow */
+    border-color: #f0d318;
+    background-color: #fbf2cb; 
+}
+
+.admonition.danger {
+    /* Splunk brand secondary color */
+    border-color: #c83c10;
+    background-color: #f0d4c7; 
+}
+
+.admonition.hint {
+    /* Splunk brand secondary color */
+    border-color: #894dd6;
+    background-color: #e5d9f7; 
+}
+
+.admonition.note {
+    /* Inherits global style */
+}
+
+.admonition.scenario {
+    /* Splunk brand secondary color */
+    background-color: transparent;
+    border-top: dotted #7F7F7F;
+    border-bottom: dotted #7F7F7F;
+    border-left: none;
+    border-right: none;
+}
+
+.admonition.tip {
+    /* Splunk brand secondary color */
+    border-color: #59c3aa;
+    background-color: #d6ebe0; 
+}
+
+.admonition.warning {
+    /* Splunk brand color */
+    border-color: #f99d1c;
+    background-color: #fee9d1; 
+}
+
+
+.page-break {
+    page-break-after: always;
+}
+
+details {
+    color: #EE0884;
+    padding: 10px;
+    margin-bottom: 10px;
+}

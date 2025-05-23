@@ -1,0 +1,279 @@
+@page {
+    size: letter portrait;
+    margin: 128px 96px 96px 96px; /* top, right, bottom, left */
+    padding: 0;
+    
+    @top-left {
+        content: element(header);
+        width: 100%;
+        /* margin-top: 150px; */
+    }
+    @bottom-center {
+        content: element(footer);
+        width: 100%;
+    }
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    background: transparent;
+    font-size: 12px;
+    color: #242424;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    /* border: 1px solid red; */
+    margin: 0;
+    padding: 0 0 1px 0;
+}
+
+header {
+    position:running(header);
+    padding: 50pt 0pt 0pt 0pt;
+}
+
+footer {
+    position:running(footer);
+    font-size: 10px;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    width: 100%;
+    padding: 10px 0 0 0;
+}
+
+h1 {
+    font-size: 24px;
+    color: #ee0884;
+    /* margin: 0; */
+    padding: 5px 0 0 0;
+}
+
+h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #F56A00;
+    margin: 0;
+    padding: 0;
+}
+
+h3 {
+    font-size: 16px;
+    color: #242424;
+    margin: 0;
+    padding: 5px 0 0 0;
+    margin: 5px 0 0 0;
+}
+
+h4 {
+    /* TODO */
+}
+
+h5 {
+    /* TODO */
+}
+
+h6 {
+    /* TODO */
+}
+
+p {
+    font-size: 14px;
+    margin: 0 0 2px 0;
+    /* padding: 0 0 0 1px; */
+}
+
+ol {
+    list-style-type: decimal !important;  
+    padding-left: 20px;
+    font-size: 12px;
+}
+
+ul {
+    padding-left: 20px;
+    font-size: 12px;
+}
+
+li {
+    margin: 0 0 2px 0;
+    font-size: 14px;
+}
+
+a:link {
+    color: #EE0884;
+}
+
+img {
+    max-width: 99.99%;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* CODE BLOCK STYLES */
+pre { 
+    background-color: #333333;
+    padding: 5px;
+    white-space: pre-wrap;
+    margin: 2px 0 2px 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+code {
+    font-size: 12px;
+    font-weight: bold;
+    font-family: 'Consolas', monospace;
+}
+
+pre>code {
+    color: white;
+    font-size: 12px;
+    width: 1900px;
+    padding: 1px;
+    white-space: pre-wrap;
+}
+
+
+/* TABLE STYLES */
+table {
+    border-collapse: collapse;
+    margin: 5px 0 10px 0;
+    font-size: 14px;
+    min-width: 400px;
+	line-height: 10pt;
+	width: 100%;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+thead tr {
+    background-color: #303030;
+    color: white;
+    text-align: left;
+}
+
+th {
+	/* background-color: #ffd700; */
+	padding: 5px;
+	-pdf-word-wrap: CJK;
+}
+
+td {
+	padding: 5px;
+	vertical-align: top;
+	/* background-color: #ffffcc; */
+	-pdf-word-wrap: CJK;
+}
+
+tbody tr {
+    border-bottom: 1px solid #202020;
+}
+
+/* TODO CONFIRM IS THESE WORK */
+tbody tr:nth-of-type(even) {    
+    /* Splunk brand */
+    background-color: #E6E6E6;
+}
+
+tbody tr:last-of-type {
+    /* Splunk brand */
+    border-bottom: 1px solid #303030;
+}
+
+
+/* ADMONITION STYLES */
+.admonition {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #E6E6E6;
+    border: solid 1px #7F7F7F;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-gap: 10px;
+    align-items: flex-start;
+}
+
+.admonition-title {
+    font-weight: bold;
+    padding-left: 5px;
+    padding-right: 5px;
+    white-space: nowrap;
+    vertical-align: top;
+    display: inline-block;
+    /* margin-top: 0; */
+    /* margin-bottom: 0; */
+}
+
+.admonition p {
+    /* margin: 0; */
+    padding-left: 10px;
+    padding-top: 4px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.admonition.info {
+    /* Splunk brand secondary color */
+    border-color: #296aa8;
+    background-color: #dbe4ef;
+}
+
+.admonition.caution {
+    /* Splunk brand yellow */
+    border-color: #f0d318;
+    background-color: #fbf2cb;
+}
+
+.admonition.danger {
+    /* Splunk brand secondary color */
+    border-color: #c83c10;
+    background-color: #f0d4c7;
+}
+
+.admonition.hint {
+    /* Splunk brand secondary color */
+    border-color: #894dd6;
+    background-color: #e5d9f7;
+}
+
+.admonition.note {
+    /* Inherits global style */
+}
+
+.admonition.scenario {
+    /* Splunk brand secondary color */
+    background-color: transparent;
+    border-top: dotted #7F7F7F;
+    border-bottom: dotted #7F7F7F;
+    border-left: none;
+    border-right: none;
+}
+
+.admonition.tip {
+    /* Splunk brand secondary color */
+    border-color: #59c3aa;
+    background-color: #d6ebe0; 
+}
+
+.admonition.warning {
+    /* Splunk brand color */
+    border-color: #f99d1c;
+    background-color: #fee9d1; 
+}
+
+
+/*  */
+.page-break {
+    page-break-after: always;
+}
+
+
+/* DETAILS STYLES */
+details {
+    font-size: 12px;
+    color: #EE0884;
+}

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md2splunk"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "APACHE-2.0"
+license-files = ["LICENSE*"]
+dependencies = [
+    "Markdown",
+    "pymdown-extensions",
+    "pillow",
+    "lxml",
+    "pathlib",
+    "Pygments",
+    "zipfile36",
+    "bs4",
+    "argparse",
+    "datetime",
+]
+authors = [
+    { name = "Sarah Joy", email = "sarahjoy@splunk.com" },
+    { name = "Jared Nielsen", email = "jnielsen@splunk.com" },
+]
+description = "A package for creating Splunk Apps or PDF documents from markdown source documents."
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+md2splunk = ["static/**/*"]
+
+[project.scripts]
+md2app-cli = "md2splunk.md2app:main"  # CLI entry point
