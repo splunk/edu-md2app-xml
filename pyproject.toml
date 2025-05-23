@@ -42,3 +42,4 @@ md2splunk = ["static/**/*"]
 
 [project.scripts]
 md2app-xml = "md2splunk.md2app:main"  # CLI entry point
+md2app-cli = "md2splunk.md2app:main"  # CLI entry point
