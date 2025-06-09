@@ -12,15 +12,15 @@ from md2splunk.xml_generator import generate_nav, generate_home, generate_guides
 from md2splunk.file_handler import read_file, write_file, load_metadata
 
 logging.basicConfig(
-    level=logging.INFO,  
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),  
+        logging.StreamHandler(sys.stdout),
     ]
 )
 
+
 def generate_app_dot_conf(default_path, course_title, version, description):
-    # Left-aligned for output formatting
     app_dot_conf = f'''[install]
 is_configured = false
 state = enabled   
@@ -43,7 +43,6 @@ label = {course_title}
 
 
 def generate_metadata(metadata_path):
-    # Left-aligned for output formatting
     file = '''[]
 access = read : [ * ], write : [ supportUser ]
 export = system
@@ -57,7 +56,6 @@ owner = supportUser
 
 def generate_static_assets(output_path):
     try:
-        # Locally scoped static; not to be confused with /appserver/static
         static_path = pathlib.Path(output_path, 'static')
         os.makedirs(static_path, exist_ok=True)
 
@@ -71,28 +69,9 @@ def generate_static_assets(output_path):
         logging.error(f"Error copying static assets: {e}")
         sys.exit(1)
 
-        package_path = pathlib.Path(__file__).parent
-        source_static_path = package_path / 'static'
-
-        if not source_static_path.exists():
-            logging.error(f"Source static directory does not exist: {source_static_path}")
-            return
-
-        try:
-            shutil.copytree(source_static_path, output_static_path, dirs_exist_ok=True)
-            logging.info(f"Copied static assets to: {output_static_path}")
-        except shutil.Error as e:
-            logging.error(f"Error copying static files: {e}")
-        except Exception as e:
-            logging.exception(f"Unexpected error during static file copy: {e}")
-
-    except Exception as e:
-        logging.exception(f"Failed to generate static assets at {output_path}: {e}")
-
 
 def copy_images_to_static(source_path, static_path):
     try:
-        """Copy image files from the source directory, 'images', to the output destination directory, 'appserver/static/images'."""
         images_src_dir = pathlib.Path(source_path, 'images')
         images_dst_dir = pathlib.Path(static_path, 'images')
 
@@ -113,13 +92,38 @@ def copy_images_to_static(source_path, static_path):
         logging.error(f"Error copying images: {e}")
         sys.exit(1)
 
+
 def copy_styles(static_path: str):
     """Copy the default dashboard.css to the static_path."""
     try:
         static_path = pathlib.Path(static_path)
         static_path.mkdir(parents=True, exist_ok=True)
 
-        dashboard_css = pathlib.Path('./src/md2splunk/static/dashboard.css')
+        # NEW: Conditional logic for Windows using os.name
+        if os.name == 'nt':  # Check if the OS is Windows
+            logging.info("Windows detected. Adjusting paths for Windows user installation.")
+
+            # Define a user-writable directory (e.g., %APPDATA%)
+            app_data_dir = pathlib.Path(os.getenv('APPDATA', './')) / 'md2splunk'
+            app_data_static_dir = app_data_dir / 'static'
+
+            # Ensure the directory exists
+            app_data_static_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy the static file to the user-writable directory if it doesn't exist
+            dashboard_css_src = pathlib.Path(__file__).parent / 'static' / 'dashboard.css'
+            dashboard_css_dest = app_data_static_dir / 'dashboard.css'
+
+            if not dashboard_css_dest.exists():
+                shutil.copy(dashboard_css_src, dashboard_css_dest)
+                logging.info(f"Copied dashboard.css to {dashboard_css_dest}")
+
+            # Update the path to use the copied file
+            dashboard_css = dashboard_css_dest
+        else:
+            # Default behavior for non-Windows OSes
+            dashboard_css = pathlib.Path('./src/md2splunk/static/dashboard.css')
+
         if not dashboard_css.exists():
             logging.error(f"dashboard.css not found at {dashboard_css}")
             sys.exit(1)
@@ -133,10 +137,9 @@ def copy_styles(static_path: str):
 
 
 def copy_custom_css_to_static(source_path: str, static_path: str):
-    """If custom.css exists in the source_path, overwrite dashboard.css in static_path."""
     try:
         source_path = pathlib.Path(source_path)
-        static_path = (pathlib.Path(static_path))
+        static_path = pathlib.Path(static_path)
 
         custom_css = source_path / 'custom.css'
         if custom_css.exists():
@@ -151,7 +154,6 @@ def copy_custom_css_to_static(source_path: str, static_path: str):
 
 
 def package_app(output_path, app_dir):
-    """Package the app directory into a compressed file."""
     try:
         format = 'zip'
         parent_dir = os.path.dirname(output_path)
@@ -184,14 +186,12 @@ def main():
     except Exception as e:
         logging.error(f"An unexpected error occurred while parsing arguments: {e}")
         sys.exit(1)
-        
 
     source_path = args.source_path
 
     command = os.path.basename(sys.argv[0])
     guide_name_pattern = re.compile(r'^\d{2}-(?!.*answers).*\.md$')
 
-    # CHECK FOR MARKDOWN FILES
     try:
         md_files = [f for f in os.listdir(source_path) if f.endswith('.md')]
         if not md_files:
@@ -199,7 +199,7 @@ def main():
             logging.error("Are you in the right directory?")
             sys.exit(1)
 
-        if not any(re.search(guide_name_pattern, s) for s in md_files): 
+        if not any(re.search(guide_name_pattern, s) for s in md_files):
             logging.error("No guide files found.")
             sys.exit(1)
 
@@ -215,9 +215,6 @@ def main():
     version = metadata.get("version")
     description = metadata.get("description")
 
-    # NOTE this app uses the following naming conventions:
-    #  `xyz_dir`: the directory name
-    #  `xyz_path`: the full path of the directory or file    
     output_path = pathlib.Path(source_path, app_dir)
     os.makedirs(output_path, exist_ok=True)
 
@@ -260,7 +257,7 @@ def main():
     generate_metadata(metadata_path)
 
     generate_app_dot_conf(default_path, course_title, version, description)
-    
+
     generate_static_assets(output_path)
 
     copy_images_to_static(source_path, static_path)
