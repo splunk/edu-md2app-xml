@@ -7,7 +7,10 @@ from md2splunk.image_handler import update_img_src
 
 
 def generate_html(pdf_dict, md):
-    """
+    logging.debug(f"generate_html called with source_path: {pdf_dict.get('source_path')}")
+    logging.debug(f"Markdown content length: {len(md)}")
+
+        """
     Generate HTML from Markdown.
 
     Parameters: 
@@ -22,7 +25,7 @@ def generate_html(pdf_dict, md):
 
     # See: https://facelessuser.github.io/pymdown-extensions/usage_notes/
     # See: https://facelessuser.github.io/pymdown-extensions/extensions/blocks/plugins/admonition/
-    extensions = [
+        extensions = [
         'pymdownx.extra',
         'pymdownx.emoji',
         'pymdownx.blocks.admonition',

@@ -278,6 +278,7 @@ def main():
             copy_custom_css_to_static(source_path, static_path)
 
     generate_nav(app_dict)
+    print("start generate home function")
     generate_home(app_dict)
     generate_guides(app_dict)
     package_app(output_path, app_dir)

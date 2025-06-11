@@ -52,6 +52,7 @@ closing_tags = f'''<div>
     '''
 
 def convert_colons_to_blocks(md_text):
+    print("entering convert colons function")
     import re
 
     # Normalize line endings
@@ -88,6 +89,7 @@ def convert_colons_to_blocks(md_text):
     return md_text
 
 def add_custom_styles(html):
+    print("entering custom css function")
     h3_tag_regex = re.compile(r'(<h3[^>]*>)(.*?)(</h3>)', re.IGNORECASE | re.DOTALL)
     matches = re.findall(h3_tag_regex, html)
 
@@ -109,7 +111,8 @@ def add_custom_styles(html):
     return html
 
 
-def generate_nav(app_dict): 
+def generate_nav(app_dict):
+    print("entering generate nav function")
     source_path = app_dict.get('source_path')
     default_path = app_dict.get('default_path')
     guide_name_pattern = app_dict.get('guide_name_pattern')
@@ -122,6 +125,7 @@ def generate_nav(app_dict):
     guides_collection = etree.SubElement(nav, 'collection', label="Lab Guides")
 
     def create_collection(label, file_name_pattern):
+        print("entering create collection function")
         sorted_path = sorted(os.listdir(source_path))
         collection = etree.SubElement(nav, 'collection', label=label)
 
@@ -142,6 +146,7 @@ def generate_nav(app_dict):
 
 
 def generate_guides(app_dict):
+    print("entering generate guides function")
     source_path = app_dict.get('source_path')
     views_path = app_dict.get('views_path')
     panels_path = app_dict.get('panels_path')
@@ -185,15 +190,22 @@ def generate_guides(app_dict):
 
             write_file(panel_xml_path, content)
 
-
 def generate_home(app_dict):
     """Generate a panel for the app with resources or information specified on the homepage."""
-    source_path = app_dict.get('source_path')
+    # Normalize the source path and retrieve paths from app_dict
+    source_path = os.path.normpath(app_dict.get('source_path'))
     views_path = app_dict.get('views_path')
     panels_path = app_dict.get('panels_path')
 
+    # Debugging: Log the source path and directory contents
+    logging.info(f"Source path: {source_path}")
+    logging.debug(f"Contents of source path: {os.listdir(source_path)}")
+
+    # Step 1: Create the home.xml dashboard
+    logging.info("Creating home.xml dashboard...")
     dashboard = etree.Element('dashboard', version="1.1", stylesheet='custom.css', hideEdit="true")
 
+    # Add basic elements to the dashboard
     label = etree.SubElement(dashboard, 'label')
     label.text = 'Home'
 
@@ -201,57 +213,70 @@ def generate_home(app_dict):
     pan1 = etree.SubElement(row1, 'panel', ref="introduction")
     row2 = etree.SubElement(dashboard, 'row')
     pan2 = etree.SubElement(row2, 'panel', ref="resources")
-    xml_str = etree.tostring(dashboard, pretty_print=True, encoding='utf-8').decode()
 
+    # Generate XML string for the dashboard
+    xml_str = etree.tostring(dashboard, pretty_print=True, encoding='utf-8').decode()
     home_xml_path = os.path.join(views_path, "home.xml")
 
+    # Write the home.xml file
     write_file(home_xml_path, xml_str)
+    logging.info(f"Successfully wrote home.xml to: {home_xml_path}")
 
-    opening_tags = '''<panel>
-    <html>
-        <style>
+    # Step 2: Look for the introduction file (00-introduction.md)
+    intro_file = os.path.normpath(os.path.join(source_path, "00-introduction.md"))
+    logging.debug(f"Looking for intro_file: {intro_file}")
 
-        </style>
-        <body>
-'''
+    # Check if the introduction file exists
+    if not os.path.isfile(intro_file):
+        logging.error(f"No '00-introduction.md' found in the directory: {source_path}")
+        sys.exit(1)
 
-    closing_tags = '''
-        </body>
-    </html> 
-</panel>
-    '''
+    # Step 3: Look for the resources file dynamically
+    resource_file = None
+    for filename in os.listdir(source_path):
+        if filename.strip().lower().endswith("-resources.md"):
+            resource_file = os.path.normpath(os.path.join(source_path, filename))
+            logging.info(f"Resources file found: {resource_file}")
+            break
 
-    # TODO REFACTOR W/ ITERATION
-    intro_file = os.path.join(source_path, "introduction.md")
-    resource_file = os.path.join(source_path, "resources.md")
-
-    preprocessed = read_file(intro_file)
-    preprocessed = convert_colons_to_blocks(preprocessed)
-    intro_html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
-    intro_html_w_updated_img_src = update_img_src(app_dict, intro_html)
-
-    add_custom_styles(intro_html_w_updated_img_src)
-
-    intro_panel = f"{opening_tags}{intro_html_w_updated_img_src}{closing_tags}"
-    intro_panel = minidom.parseString(intro_panel).toprettyxml(indent="  ", newl="")
-    intro_xml_path = os.path.join(panels_path, 'introduction.xml')
-
-    write_file(intro_xml_path, intro_panel)
-    
+    # Step 4: Process 00-introduction.md
     try:
-        if os.path.isfile(resource_file):
+        logging.debug(f"Intro file path before calling read_file: {intro_file}")
+        preprocessed = read_file(intro_file)
+        logging.debug(f"Successfully read introduction file: {intro_file}")
+
+        preprocessed = convert_colons_to_blocks(preprocessed)
+        intro_html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
+        intro_html_w_updated_img_src = update_img_src(app_dict, intro_html)
+        add_custom_styles(intro_html_w_updated_img_src)
+
+        # Create the introduction.xml panel
+        intro_panel = f"{opening_tags}{intro_html_w_updated_img_src}{closing_tags}"
+        intro_xml_path = os.path.join(panels_path, 'introduction.xml')
+        write_file(intro_xml_path, intro_panel)
+        logging.info(f"Successfully wrote introduction panel to: {intro_xml_path}")
+
+    except Exception as e:
+        logging.error(f"Error processing introduction file: {e}")
+        sys.exit(1)
+
+    # Step 5: Process resources.md (if it exists)
+    try:
+        if resource_file and os.path.isfile(resource_file):
+            logging.debug(f"Resource file path before calling read_file: {resource_file}")
             preprocessed = read_file(resource_file)
+            logging.debug(f"Successfully read resources file: {resource_file}")
+
             preprocessed = convert_colons_to_blocks(preprocessed)
             resource_html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
             resource_html_w_updated_img_src = update_img_src(app_dict, resource_html)
-
             add_custom_styles(resource_html_w_updated_img_src)
-            
+
+            # Create the resources.xml panel
             resource_panel = f"{opening_tags}{resource_html_w_updated_img_src}{closing_tags}"
-            resource_panel = minidom.parseString(resource_panel).toprettyxml(indent="  ", newl="")
             resource_xml_path = os.path.join(panels_path, 'resources.xml')
-            
             write_file(resource_xml_path, resource_panel)
-            
+            logging.info(f"Successfully wrote resources panel to: {resource_xml_path}")
+
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logging.error(f"Error processing resources file: {e}")
