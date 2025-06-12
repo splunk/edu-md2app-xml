@@ -8,7 +8,7 @@ import pathlib
 import ntpath
 import logging
 
-from md2splunk.xml_generator import generate_nav, generate_home, generate_guides
+from md2splunk.xml_generator import generate_nav, generate_guides
 from md2splunk.file_handler import read_file, write_file, load_metadata
 
 logging.basicConfig(
@@ -278,8 +278,6 @@ def main():
             copy_custom_css_to_static(source_path, static_path)
 
     generate_nav(app_dict)
-    print("start generate home function")
-    generate_home(app_dict)
     generate_guides(app_dict)
     package_app(output_path, app_dir)
 
