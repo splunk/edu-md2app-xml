@@ -1,4 +1,4 @@
-import os 
+import os
 import re
 import markdown
 import datetime
@@ -51,6 +51,7 @@ closing_tags = f'''<div>
 </panel>
     '''
 
+
 def convert_colons_to_blocks(md_text):
     import re
 
@@ -87,7 +88,9 @@ def convert_colons_to_blocks(md_text):
 
     return md_text
 
+
 def add_custom_styles(html):
+    print("Applying custom CSS from file provided")
     h3_tag_regex = re.compile(r'(<h3[^>]*>)(.*?)(</h3>)', re.IGNORECASE | re.DOTALL)
     matches = re.findall(h3_tag_regex, html)
 
@@ -109,37 +112,40 @@ def add_custom_styles(html):
     return html
 
 
-def generate_nav(app_dict): 
+def generate_nav(app_dict):
     source_path = app_dict.get('source_path')
     default_path = app_dict.get('default_path')
     guide_name_pattern = app_dict.get('guide_name_pattern')
 
+    # Set the path to write the navigation XML
     nav_path = os.path.join(default_path, 'data', 'ui', 'nav')
     os.makedirs(nav_path, exist_ok=True)
 
+    # Create the root <nav> element
     nav = etree.Element('nav', color="#154e7a")
-    home_view = etree.SubElement(nav, 'view', name="home", default="true")
+
+    # Add the home view, pointing to "00-introduction" and marked as default
+    home_view = etree.SubElement(nav, 'view', name="00-introduction", default="true")
+
+    # Create a single <collection> for "Lab Guides"
     guides_collection = etree.SubElement(nav, 'collection', label="Lab Guides")
 
-    def create_collection(label, file_name_pattern):
-        sorted_path = sorted(os.listdir(source_path))
-        collection = etree.SubElement(nav, 'collection', label=label)
+    # Add views to the collection, excluding "00-introduction"
+    sorted_path = sorted(os.listdir(source_path))
+    for file_name in sorted_path:
+        if guide_name_pattern.match(file_name):
+            view_name = os.path.splitext(file_name)[0]
+            if view_name != "00-introduction":  # Exclude "00-introduction" from the collection
+                etree.SubElement(guides_collection, 'view', name=view_name)
 
-        for file_name in sorted_path:
-            if file_name_pattern.match(file_name):
-                view_name = os.path.splitext(file_name)[0]
-                etree.SubElement(collection, 'view', name=view_name)
-
-        return collection
-
-
-    create_collection("Lab Guides", guide_name_pattern)
-
+    # Convert the XML structure to a string
     xml_str = etree.tostring(nav, pretty_print=True, encoding='utf-8').decode()
-    default_xml_path = os.path.join(nav_path, "default.xml")
 
+    # Write the XML to the default.xml file
+    default_xml_path = os.path.join(nav_path, "default.xml")
     write_file(default_xml_path, xml_str)
 
+    print(f"default.xml generated at {default_xml_path}")
 
 def generate_guides(app_dict):
     source_path = app_dict.get('source_path')
@@ -148,110 +154,43 @@ def generate_guides(app_dict):
     app_dir = app_dict.get('app_dir')
     guide_name_pattern = app_dict.get('guide_name_pattern')
 
+    # Iterate through all guide files in the source directory
     for file_name in os.listdir(source_path):
-        if guide_name_pattern.match(file_name):
+        if guide_name_pattern.match(file_name):  # Match guide files based on naming convention
             view_name = os.path.splitext(file_name)[0]
             panel_name = os.path.splitext(file_name)[0] + '.xml'
             guide_path = os.path.join(source_path, file_name)
 
-            # Add dynamic view / collection naming
+            # Read the guide file and process its content
             with open(guide_path, 'r', encoding="utf-8") as file:
                 lines = file.readlines()
 
-            guide_title = lines[0].strip()[2:]
-            # Toggle to strip title from each guide
-            # lines = lines[1:]  
+            guide_title = lines[0].strip()[2:]  # Extract the title from the first line
             preprocessed = ''.join(lines)
 
+            # Create an individual dashboard XML for the guide
             dashboard = etree.Element('dashboard', version="1.1", stylesheet='custom.css', hideEdit="true")
             label = etree.SubElement(dashboard, 'label')
             label.text = guide_title
             row1 = etree.SubElement(dashboard, 'row')
             panel = etree.SubElement(row1, 'panel', ref=view_name, app=app_dir)
+
+            # Write the dashboard XML
             xml_str = etree.tostring(dashboard, encoding='utf-8').decode()
             view_xml_path = os.path.join(views_path, view_name + '.xml')
-
             write_file(view_xml_path, xml_str)
 
-            # file_path = os.path.join(source_path, file_name)
+            # Convert the Markdown content to HTML for the panel
             preprocessed = convert_colons_to_blocks(preprocessed)
             html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
 
+            # Apply custom styles and update image paths
             html = update_img_src(app_dict, html)
             html = add_custom_styles(html)
 
+            # Wrap the processed HTML with opening and closing tags
             content = f"{opening_tags}{html}{closing_tags}"
             panel_xml_path = os.path.join(panels_path, panel_name)
 
+            # Write the panel content
             write_file(panel_xml_path, content)
-
-
-def generate_home(app_dict):
-    """Generate a panel for the app with resources or information specified on the homepage."""
-    source_path = app_dict.get('source_path')
-    views_path = app_dict.get('views_path')
-    panels_path = app_dict.get('panels_path')
-
-    dashboard = etree.Element('dashboard', version="1.1", stylesheet='custom.css', hideEdit="true")
-
-    label = etree.SubElement(dashboard, 'label')
-    label.text = 'Home'
-
-    row1 = etree.SubElement(dashboard, 'row')
-    pan1 = etree.SubElement(row1, 'panel', ref="introduction")
-    row2 = etree.SubElement(dashboard, 'row')
-    pan2 = etree.SubElement(row2, 'panel', ref="resources")
-    xml_str = etree.tostring(dashboard, pretty_print=True, encoding='utf-8').decode()
-
-    home_xml_path = os.path.join(views_path, "home.xml")
-
-    write_file(home_xml_path, xml_str)
-
-    opening_tags = '''<panel>
-    <html>
-        <style>
-
-        </style>
-        <body>
-'''
-
-    closing_tags = '''
-        </body>
-    </html> 
-</panel>
-    '''
-
-    # TODO REFACTOR W/ ITERATION
-    intro_file = os.path.join(source_path, "introduction.md")
-    resource_file = os.path.join(source_path, "resources.md")
-
-    preprocessed = read_file(intro_file)
-    preprocessed = convert_colons_to_blocks(preprocessed)
-    intro_html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
-    intro_html_w_updated_img_src = update_img_src(app_dict, intro_html)
-
-    add_custom_styles(intro_html_w_updated_img_src)
-
-    intro_panel = f"{opening_tags}{intro_html_w_updated_img_src}{closing_tags}"
-    intro_panel = minidom.parseString(intro_panel).toprettyxml(indent="  ", newl="")
-    intro_xml_path = os.path.join(panels_path, 'introduction.xml')
-
-    write_file(intro_xml_path, intro_panel)
-    
-    try:
-        if os.path.isfile(resource_file):
-            preprocessed = read_file(resource_file)
-            preprocessed = convert_colons_to_blocks(preprocessed)
-            resource_html = markdown.markdown(preprocessed, extensions=extensions, extension_configs=extension_configs)
-            resource_html_w_updated_img_src = update_img_src(app_dict, resource_html)
-
-            add_custom_styles(resource_html_w_updated_img_src)
-            
-            resource_panel = f"{opening_tags}{resource_html_w_updated_img_src}{closing_tags}"
-            resource_panel = minidom.parseString(resource_panel).toprettyxml(indent="  ", newl="")
-            resource_xml_path = os.path.join(panels_path, 'resources.xml')
-            
-            write_file(resource_xml_path, resource_panel)
-            
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")

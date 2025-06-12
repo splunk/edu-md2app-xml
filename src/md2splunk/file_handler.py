@@ -87,26 +87,18 @@ def get_md_file(source_path, file):
 def read_file(file_path):
     """Helper function to read file content."""
     try:
+        logging.debug(f"read_file called with file_path: {file_path}")
         if os.path.isfile(file_path):
             with open(file_path, "r", encoding="utf-8") as file:
                 content = file.read()
                 logging.info(f"Successfully read file: {file_path}")
                 return content
         else:
+            logging.error(f"File does not exist: {file_path}")
             raise FileNotFoundError(f"No {os.path.basename(file_path)} found at {file_path}.")
-    
     except FileNotFoundError as e:
         logging.error(e)
         sys.exit(1)
-    
-    except IOError as e:
-        logging.error(f"Error reading file {file_path}: {e}")
-        sys.exit(1)
-    
-    except Exception as e:
-        logging.error(f"An unexpected error occurred while reading the file: {e}")
-        sys.exit(1)
-
 
 def write_file(file_path, content):
     """Helper function to write content to a file."""
@@ -120,7 +112,6 @@ def write_file(file_path, content):
     except Exception as e:
         logging.error(f"An unexpected error occurred while writing to the file: {e}")
         sys.exit(1)
-
 
 def load_metadata(source_path):
     metadata_files = ['metadata.yml', 'metadata.yaml']
