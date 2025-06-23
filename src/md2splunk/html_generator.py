@@ -7,6 +7,9 @@ from md2splunk.image_handler import update_img_src
 
 
 def generate_html(pdf_dict, md):
+    logging.debug(f"generate_html called with source_path: {pdf_dict.get('source_path')}")
+    logging.debug(f"Markdown content length: {len(md)}")
+
     """
     Generate HTML from Markdown.
 

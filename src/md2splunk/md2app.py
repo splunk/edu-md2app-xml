@@ -8,7 +8,7 @@ import pathlib
 import ntpath
 import logging
 
-from md2splunk.xml_generator import generate_nav, generate_home, generate_guides
+from md2splunk.xml_generator import generate_nav, generate_guides
 from md2splunk.file_handler import read_file, write_file, load_metadata
 
 logging.basicConfig(
@@ -173,11 +173,21 @@ def main():
         parser.add_argument('source_path', type=str, help="Path to the source directory")
         args = parser.parse_args()
 
+        # Check if the provided source path is valid
         if not os.path.isdir(args.source_path):
             logging.error(f"{args.source_path} is not a valid directory.")
             sys.exit(1)
 
-        logging.info(f"Using source path: {args.source_path}")
+        logging.info(f"Initial source path provided: {args.source_path}")
+
+        # Check if "lab-guides" subfolder exists and has contents
+        lab_guides_path = pathlib.Path(args.source_path, "lab-guides")
+        if lab_guides_path.is_dir() and any(lab_guides_path.iterdir()):  # Check if directory exists and is not empty
+            logging.info(f"'lab-guides' folder found with content. Using it as the source path.")
+            source_path = str(lab_guides_path)
+        else:
+            logging.info(f"'lab-guides' folder not found or empty. Using the provided source path.")
+            source_path = args.source_path
 
     except argparse.ArgumentError as e:
         logging.error(f"Argument parsing error: {e}")
@@ -187,12 +197,13 @@ def main():
         logging.error(f"An unexpected error occurred while parsing arguments: {e}")
         sys.exit(1)
 
-    source_path = args.source_path
+    logging.info(f"Final source path in use: {source_path}")
 
     command = os.path.basename(sys.argv[0])
     guide_name_pattern = re.compile(r'^\d{2}-(?!.*answers).*\.md$')
 
     try:
+        # Ensure the source path contains .md files
         md_files = [f for f in os.listdir(source_path) if f.endswith('.md')]
         if not md_files:
             logging.error(f"No .md files found in {source_path}")
@@ -207,19 +218,20 @@ def main():
         logging.error(f"Error processing source path {source_path}: {e}")
         sys.exit(1)
 
+    # Load metadata from the source path
     metadata = load_metadata(source_path)
 
+    # Read metadata and set up app variables
     course_title = metadata.get("course_title")
     version = metadata.get("version")
     app_dir = course_title.lower().replace(" ", "_") + "_app"
-    version = metadata.get("version")
     description = metadata.get("description")
 
+    # Set up directory paths for the app structure
     output_path = pathlib.Path(source_path, app_dir)
     os.makedirs(output_path, exist_ok=True)
 
     appserver_path = pathlib.Path(output_path, 'appserver')
-
     default_path = pathlib.Path(output_path, 'default')
     os.makedirs(default_path, exist_ok=True)
 
@@ -254,14 +266,11 @@ def main():
         'img_tag_regex': r'<img[^>]+src="([^"]+)"',
     }
 
+    # Generate app components and package the app
     generate_metadata(metadata_path)
-
     generate_app_dot_conf(default_path, course_title, version, description)
-
     generate_static_assets(output_path)
-
     copy_images_to_static(source_path, static_path)
-
     copy_styles(static_path)
 
     for file in os.listdir(source_path):
@@ -269,13 +278,8 @@ def main():
             copy_custom_css_to_static(source_path, static_path)
 
     generate_nav(app_dict)
-
-    generate_home(app_dict)
-
     generate_guides(app_dict)
-
     package_app(output_path, app_dir)
-
 
 if __name__ == '__main__':
     main()
