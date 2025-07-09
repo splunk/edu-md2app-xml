@@ -54,14 +54,16 @@ closing_tags = f'''<div>
 
 def convert_colons_to_blocks(md_text):
     import re
+    import markdown  # pip install markdown
 
     # Normalize line endings
     md_text = md_text.replace('\r\n', '\n').replace('\r', '\n')
 
-    # Convert ::: answers ... ::: to HTML <details> block with a trailing newline
+    # Convert ::: answers ... ::: to HTML <details> block (convert content to HTML)
     def answers_block_replacer(match):
-        content = match.group(1).strip()
-        return f'<details class="answers">\n<summary>Answers</summary>\n{content}\n</details>\n'
+        content_md = match.group(1).strip()
+        content_html = markdown.markdown(content_md)
+        return f'<details class="answers">\n<summary>Answers</summary>\n{content_html}\n</details>\n'
 
     md_text = re.sub(
         r'^:::\s*answers\s*\n(.*?)\n:::\s*(?:\n|\Z)',
