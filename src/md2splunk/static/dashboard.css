@@ -113,6 +113,8 @@ pre code {
     color: white;
     font-size:18px; 
     padding:1px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 code { 
@@ -124,6 +126,8 @@ code {
     font-size: 18px;
     color: black;
     font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 code:hover {
@@ -255,7 +259,19 @@ tbody tr:last-of-type {
 }
 
 details {
-    color: #EE0884;
+    color: greenyellow;
     padding: 10px;
     margin-bottom: 10px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+details code {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+details pre code {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
