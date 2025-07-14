@@ -54,22 +54,6 @@ owner = supportUser
     write_file(default_meta_path, file)
 
 
-def generate_static_assets(output_path):
-    try:
-        static_path = pathlib.Path(output_path, 'static')
-        os.makedirs(static_path, exist_ok=True)
-
-        package_path = pathlib.Path(__file__).parent
-        src_path = pathlib.Path(package_path, 'static')
-
-        shutil.copytree(src_path, static_path, dirs_exist_ok=True)
-        logging.info(f"Static assets copied to {static_path}")
-
-    except Exception as e:
-        logging.error(f"Error copying static assets: {e}")
-        sys.exit(1)
-
-
 def copy_images_to_static(source_path, static_path):
     try:
         images_src_dir = pathlib.Path(source_path, 'images')
@@ -269,7 +253,6 @@ def main():
     # Generate app components and package the app
     generate_metadata(metadata_path)
     generate_app_dot_conf(default_path, course_title, version, description)
-    generate_static_assets(output_path)
     copy_images_to_static(source_path, static_path)
     copy_styles(static_path)
 
