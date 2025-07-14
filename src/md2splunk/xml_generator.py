@@ -171,7 +171,7 @@ def generate_guides(app_dict):
             preprocessed = ''.join(lines)
 
             # Create an individual dashboard XML for the guide
-            dashboard = etree.Element('dashboard', version="1.1", stylesheet='custom.css', hideEdit="true")
+            dashboard = etree.Element('dashboard', version="1.1", stylesheet='dashboard.css', hideEdit="true")
             label = etree.SubElement(dashboard, 'label')
             label.text = guide_title
             row1 = etree.SubElement(dashboard, 'row')

@@ -54,22 +54,6 @@ owner = supportUser
     write_file(default_meta_path, file)
 
 
-def generate_static_assets(output_path):
-    try:
-        static_path = pathlib.Path(output_path, 'static')
-        os.makedirs(static_path, exist_ok=True)
-
-        package_path = pathlib.Path(__file__).parent
-        src_path = pathlib.Path(package_path, 'static')
-
-        shutil.copytree(src_path, static_path, dirs_exist_ok=True)
-        logging.info(f"Static assets copied to {static_path}")
-
-    except Exception as e:
-        logging.error(f"Error copying static assets: {e}")
-        sys.exit(1)
-
-
 def copy_images_to_static(source_path, static_path):
     try:
         images_src_dir = pathlib.Path(source_path, 'images')
@@ -93,43 +77,19 @@ def copy_images_to_static(source_path, static_path):
         sys.exit(1)
 
 
+import importlib.resources # Make sure this import is at the top of main.py
+
 def copy_styles(static_path: str):
     """Copy the default dashboard.css to the static_path."""
     try:
         static_path = pathlib.Path(static_path)
         static_path.mkdir(parents=True, exist_ok=True)
 
-        # NEW: Conditional logic for Windows using os.name
-        if os.name == 'nt':  # Check if the OS is Windows
-            logging.info("Windows detected. Adjusting paths for Windows user installation.")
-
-            # Define a user-writable directory (e.g., %APPDATA%)
-            app_data_dir = pathlib.Path(os.getenv('APPDATA', './')) / 'md2splunk'
-            app_data_static_dir = app_data_dir / 'static'
-
-            # Ensure the directory exists
-            app_data_static_dir.mkdir(parents=True, exist_ok=True)
-
-            # Copy the static file to the user-writable directory if it doesn't exist
-            dashboard_css_src = pathlib.Path(__file__).parent / 'static' / 'dashboard.css'
-            dashboard_css_dest = app_data_static_dir / 'dashboard.css'
-
-            if not dashboard_css_dest.exists():
-                shutil.copy(dashboard_css_src, dashboard_css_dest)
-                logging.info(f"Copied dashboard.css to {dashboard_css_dest}")
-
-            # Update the path to use the copied file
-            dashboard_css = dashboard_css_dest
-        else:
-            # Default behavior for non-Windows OSes
-            dashboard_css = pathlib.Path('./src/md2splunk/static/dashboard.css')
-
-        if not dashboard_css.exists():
-            logging.error(f"dashboard.css not found at {dashboard_css}")
-            sys.exit(1)
-
-        shutil.copy(dashboard_css, static_path / 'dashboard.css')
-        logging.info(f"Copied dashboard.css to {static_path}")
+        # Use importlib.resources to reliably get the path to dashboard.css within the package
+        # This will point to your source file when installed in editable mode.
+        with importlib.resources.path('md2splunk.static', 'dashboard.css') as dashboard_css_src_path:
+            shutil.copy(dashboard_css_src_path, static_path / 'dashboard.css')
+            logging.info(f"Copied dashboard.css from package resources to {static_path / 'dashboard.css'}")
 
     except Exception as e:
         logging.exception("Failed to copy dashboard.css.")
@@ -269,7 +229,6 @@ def main():
     # Generate app components and package the app
     generate_metadata(metadata_path)
     generate_app_dot_conf(default_path, course_title, version, description)
-    generate_static_assets(output_path)
     copy_images_to_static(source_path, static_path)
     copy_styles(static_path)
 
