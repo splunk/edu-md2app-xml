@@ -259,7 +259,7 @@ tbody tr:last-of-type {
 }
 
 details {
-    color: greenyellow;
+    color: #EE0884;
     padding: 10px;
     margin-bottom: 10px;
     white-space: pre-wrap;
