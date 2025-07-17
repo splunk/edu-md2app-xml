@@ -259,3 +259,16 @@ details {
     padding: 10px;
     margin-bottom: 10px;
 }
+
+.details>pre { 
+  background-color: #4B4D52;
+  /* background-color: #F4F4F5; */
+  /* background-color: inherit; */
+  /* background-color: transparent; */
+}
+
+.details>pre>code {
+  /* color: inherit; */
+  /* color: #4B4D52; */
+  color: white;
+}
