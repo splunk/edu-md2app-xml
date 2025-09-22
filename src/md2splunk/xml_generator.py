@@ -140,6 +140,13 @@ def generate_nav(app_dict):
             if view_name != "00-introduction":  # Exclude "00-introduction" from the collection
                 etree.SubElement(guides_collection, 'view', name=view_name)
 
+    # --- NEW FEATURE: Check for downloads.md and add to navigation if it exists ---
+    downloads_md_path = os.path.join(source_path, "downloads.md")
+    if os.path.exists(downloads_md_path): # Check if downloads.md exists. [5, 7, 8, 9, 10]
+        print(f"Found {downloads_md_path}, adding 'Downloads' collection to navigation.")
+        downloads_collection = etree.SubElement(nav, 'collection', label="Downloads") # Create new collection. [11, 12, 13, 14, 15]
+        etree.SubElement(downloads_collection, 'view', name="downloads") # Add view for downloads. [11, 12, 13, 14, 15]
+
     # Convert the XML structure to a string
     xml_str = etree.tostring(nav, pretty_print=True, encoding='utf-8').decode()
 
@@ -158,7 +165,9 @@ def generate_guides(app_dict):
 
     # Iterate through all guide files in the source directory
     for file_name in os.listdir(source_path):
-        if guide_name_pattern.match(file_name):  # Match guide files based on naming convention
+        # --- MODIFIED CONDITION: Include downloads.md in processing ---
+        # Process files matching the guide pattern OR if it's "downloads.md"
+        if guide_name_pattern.match(file_name) or file_name == "downloads.md":
             view_name = os.path.splitext(file_name)[0]
             panel_name = os.path.splitext(file_name)[0] + '.xml'
             guide_path = os.path.join(source_path, file_name)
@@ -167,7 +176,15 @@ def generate_guides(app_dict):
             with open(guide_path, 'r', encoding="utf-8") as file:
                 lines = file.readlines()
 
-            guide_title = lines[0].strip()[2:]  # Extract the title from the first line
+            # Determine guide title. For downloads.md, if the file is empty, use a default title.
+            # Otherwise, extract from the first line, assuming it follows the '# Title' format.
+            if file_name == "downloads.md" and not lines:
+                guide_title = "Downloads"
+            elif lines:
+                guide_title = lines[0].strip()[2:]  # Extract the title from the first line
+            else:
+                guide_title = view_name.replace('-', ' ').title() # Fallback title if file is empty and not downloads.md
+
             preprocessed = ''.join(lines)
 
             # Create an individual dashboard XML for the guide
@@ -191,7 +208,7 @@ def generate_guides(app_dict):
             html = add_custom_styles(html)
 
             # Wrap the processed HTML with opening and closing tags
-            content = f"{opening_tags}{html}{closing_tags}"
+            content = f"{opening_tags}{html}{closing_tags}" # Using f-string for content. [1, 2, 3, 4, 6]
             panel_xml_path = os.path.join(panels_path, panel_name)
 
             # Write the panel content
