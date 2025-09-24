@@ -220,7 +220,7 @@ def main():
         'command': command,
         'app_dir': app_dir,
         'guide_name_pattern': guide_name_pattern,
-        'img_tag_regex': r'<img[^>]+src="([^"]+)"', # This regex is for finding the src attribute
+        'img_tag_regex': r'src=["\'](images/[^"\']+|./images/[^"\']+)["\']',
     }
 
     # Generate app components and package the app
