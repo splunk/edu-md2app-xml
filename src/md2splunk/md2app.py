@@ -13,6 +13,7 @@ from md2splunk.xml_generator import generate_nav, generate_guides
 # Ensure copy_images_with_subfolders is imported from file_handler
 from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
 
+# Configure logging for the entire application
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -182,7 +183,7 @@ def main():
     # Set up directory paths for the app structure
     # output_path is the root of the new Splunk app (e.g., 'my_course_app')
     output_path = pathlib.Path(pathlib.Path(source_path).parent, app_dir) # Place app next to source, not inside
-    os.makedirs(output_path, exist_ok=True) # <--- FIXED: Closing parenthesis added here
+    os.makedirs(output_path, exist_ok=True)
     logging.info(f"App output directory: {output_path}")
 
 
@@ -250,10 +251,11 @@ def main():
 
     logging.info(f"App '{app_dir}' successfully built at {output_path}")
 
-# This try-except block wraps the entire main function call, catching any unhandled exceptions
-except Exception as e: # This is the line where the SyntaxError occurred previously
-    logging.error(f"An unexpected error occurred during app generation: {e}", exc_info=True)
-    sys.exit(1)
 
+# --- FIX: The try-except block for the entire script execution must wrap the main() call ---
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e: # This is the line where the SyntaxError occurred previously, now correctly placed
+        logging.error(f"An unexpected error occurred during app generation: {e}", exc_info=True)
+        sys.exit(1)
