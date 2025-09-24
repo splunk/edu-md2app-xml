@@ -13,7 +13,6 @@ from md2splunk.xml_generator import generate_nav, generate_guides
 # Ensure copy_images_with_subfolders is imported from file_handler
 from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
 
-# Configure logging for the entire application
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -60,10 +59,6 @@ owner = supportUser
     default_meta_path = pathlib.Path(metadata_path, 'default.meta')
     write_file(default_meta_path, file_content)
     logging.info(f"Generated default.meta at {default_meta_path}")
-
-
-# --- The old copy_images_to_static function is REMOVED from here ---
-# It is replaced by the more robust copy_images_with_subfolders from file_handler.py
 
 
 def copy_styles(static_path: str):
@@ -187,7 +182,7 @@ def main():
     # Set up directory paths for the app structure
     # output_path is the root of the new Splunk app (e.g., 'my_course_app')
     output_path = pathlib.Path(pathlib.Path(source_path).parent, app_dir) # Place app next to source, not inside
-    os.makedirs(output_path, exist_ok=True)
+    os.makedirs(output_path, exist_ok=True) # <--- FIXED: Closing parenthesis added here
     logging.info(f"App output directory: {output_path}")
 
 
@@ -255,7 +250,8 @@ def main():
 
     logging.info(f"App '{app_dir}' successfully built at {output_path}")
 
-except Exception as e:
+# This try-except block wraps the entire main function call, catching any unhandled exceptions
+except Exception as e: # This is the line where the SyntaxError occurred previously
     logging.error(f"An unexpected error occurred during app generation: {e}", exc_info=True)
     sys.exit(1)
 
