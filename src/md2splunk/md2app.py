@@ -7,13 +7,13 @@ import sys
 import pathlib
 import ntpath
 import logging
+import importlib.resources # <--- THIS IS THE FIX: Ensure importlib is imported here
 
 # Import necessary functions from your other modules
 from md2splunk.xml_generator import generate_nav, generate_guides
 # Ensure copy_images_with_subfolders is imported from file_handler
 from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
 
-# Configure logging for the entire application
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -103,8 +103,6 @@ def package_app(output_path, app_dir):
         parent_dir = os.path.dirname(output_path)
         archive_name = pathlib.Path(parent_dir, app_dir)
 
-        # make_archive expects the base_dir (where to start archiving from) and root_dir (where to create the archive)
-        # Here, we want to archive the content of 'output_path' into a zip named 'archive_name'
         shutil.make_archive(str(archive_name), format, str(output_path), '.') # Archive contents of output_path
         logging.info(f"App packaged successfully as {archive_name}.{format}")
 
@@ -252,10 +250,10 @@ def main():
     logging.info(f"App '{app_dir}' successfully built at {output_path}")
 
 
-# --- FIX: The try-except block for the entire script execution must wrap the main() call ---
+# --- The try-except block for the entire script execution must wrap the main() call ---
 if __name__ == '__main__':
     try:
         main()
-    except Exception as e: # This is the line where the SyntaxError occurred previously, now correctly placed
+    except Exception as e:
         logging.error(f"An unexpected error occurred during app generation: {e}", exc_info=True)
         sys.exit(1)
