@@ -1,16 +1,10 @@
-import argparse
-import shutil
 import os
-import re
-import yaml
 import sys
-import pathlib
+import yaml
 import ntpath
+import importlib.resources
 import logging
-
-from md2splunk.xml_generator import generate_nav, generate_guides
-# Updated import to get the new image copying function
-from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
+import shutil # <--- ADD THIS IMPORT
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,172 +14,177 @@ logging.basicConfig(
     ]
 )
 
-# --- Top-level functions (generate_app_dot_conf, generate_metadata, etc.) ---
-# These functions are defined directly in md2app.py, so they don't need to be imported from file_handler.
-
-def generate_app_dot_conf(default_path, course_title, version, description):
-    app_dot_conf = f'''[install]
-is_configured = false
-state = enabled
-build = 1
-
-[launcher]
-author = Splunk LLC
-version = {version}
-description = {description}
-
-[package]
-check_for_updates = 0
-
-[ui]
-is_visible = true
-label = {course_title}
-        '''
-    app_dot_conf_path = pathlib.Path(default_path, 'app.conf')
-    write_file(app_dot_conf_path, app_dot_conf)
-
-
-def generate_metadata(metadata_path):
-    file = '''[]
-access = read : [ * ], write : [ supportUser ]
-export = system
-
-[savedsearches]
-owner = supportUser
-        '''
-    default_meta_path = pathlib.Path(metadata_path, 'default.meta')
-    write_file(default_meta_path, file)
-
-
-# --- REMOVE THE OLD copy_images_to_static FUNCTION FROM HERE ---
-# It is replaced by the one in file_handler.py
-# def copy_images_to_static(source_path, static_path):
-#     try:
-#         images_src_dir = pathlib.Path(source_path, 'images')
-#         images_dst_dir = pathlib.Path(static_path, 'images')
-#         # ... (old limited implementation) ...
-#     except Exception as e:
-#         logging.error(f"Error copying images: {e}")
-#         sys.exit(1)
-
-
-import importlib.resources # Make sure this import is at the top of main.py
-
-def copy_styles(static_path: str):
-    """Copy the default dashboard.css to the static_path."""
+def get_css_file_path(stylesheet):
     try:
-        static_path = pathlib.Path(static_path)
-        static_path.mkdir(parents=True, exist_ok=True)
+        with importlib.resources.path('md2splunk.styles', stylesheet) as style_css_path:
+            logging.info(f"Found CSS file: {style_css_path}")
+            return style_css_path
+    except Exception as e:
+        logging.error(f"An error occurred while getting the CSS file path: {e}")
+        raise RuntimeError(f"An error occurred while getting the CSS file path: {e}")
 
-        # Use importlib.resources to reliably get the path to dashboard.css within the package
-        # This will point to your source file when installed in editable mode.
-        with importlib.resources.path('md2splunk.static', 'dashboard.css') as dashboard_css_src_path:
-            shutil.copy(dashboard_css_src_path, static_path / 'dashboard.css')
-            logging.info(f"Copied dashboard.css from package resources to {static_path / 'dashboard.css'}")
+
+def get_custom_css_path(source_path):
+    try:
+        logging.info("Getting custom.css...")
+        custom_css_path = os.path.join(source_path, "custom.css")
+        logging.info(f"Custom CSS file path: {custom_css_path}")
+        return os.path.normcase(f'{custom_css_path}')
+    except Exception as e:
+        logging.error(f"An error occurred while getting the custom CSS file path: {e}")
+        raise RuntimeError(f"An error occurred while getting the custom CSS file path: {e}")
+
+def get_logo_file_path():
+    try:
+        with importlib.resources.path('md2splunk.static', 'logo-splunk-cisco.png') as logo:
+            logging.info(f"Found logo file: {logo}")
+            return str(logo)
+    except Exception as e:
+        logging.error(f"An error occurred while getting the logo file path: {e}")
+        raise RuntimeError(f"An error occurred while getting the logo file path: {e}")
+
+
+def get_md_file(source_path, file):
+    """
+    Gets the content of a Markdown file.
+
+    Parameters:
+    - source_path: Path to directory containing Markdown files
+    - file: Name of Markdown file
+
+    Returns:
+    - Content of the Markdown file
+
+    Raises:
+    - FileNotFoundError: If the file doesn't exist in the specified path.
+    - IOError: If there is an issue with reading the file.
+    """
+    try:
+        logging.info(f"Getting {file}...")
+        file_path = os.path.join(source_path, file)
+
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"Markdown file {file} not found at {file_path}")
+
+        with open(file_path, 'r', encoding="utf-8") as md_file:
+            content = md_file.read()
+            logging.info(f"Successfully read the Markdown file: {file}")
+            return content
+
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {e}")
+        raise FileNotFoundError(f"File not found: {e}")
+
+    except IOError as e:
+        logging.error(f"Error reading file {file}: {e}")
+        raise IOError(f"Error reading file {file}: {e}")
 
     except Exception as e:
-        logging.exception("Failed to copy dashboard.css.")
-        sys.exit(1)
+        logging.error(f"An unexpected error occurred while getting the Markdown file: {e}")
+        raise RuntimeError(f"An unexpected error occurred while getting the Markdown file: {e}")
 
 
-def copy_custom_css_to_static(source_path: str, static_path: str):
+def read_file(file_path):
+    """Helper function to read file content."""
     try:
-        source_path = pathlib.Path(source_path)
-        static_path = pathlib.Path(static_path)
-
-        custom_css = source_path / 'custom.css'
-        if custom_css.exists():
-            shutil.copy(custom_css, static_path / 'dashboard.css')
-            logging.info(f"custom.css found and used to overwrite dashboard.css in {static_path}")
+        logging.debug(f"read_file called with file_path: {file_path}")
+        if os.path.isfile(file_path):
+            with open(file_path, "r", encoding="utf-8") as file:
+                content = file.read()
+                logging.info(f"Successfully read file: {file_path}")
+                return content
         else:
-            logging.info(f"No custom.css found in {source_path}; default dashboard.css remains")
-
-    except Exception as e:
-        logging.exception("Error copying custom.css")
+            logging.error(f"File does not exist: {file_path}")
+            raise FileNotFoundError(f"No {os.path.basename(file_path)} found at {file_path}.")
+    except FileNotFoundError as e:
+        logging.error(e)
         sys.exit(1)
 
-
-def package_app(output_path, app_dir):
+def write_file(file_path, content):
+    """Helper function to write content to a file."""
     try:
-        format = 'zip'
-        parent_dir = os.path.dirname(output_path)
-        archive_name = pathlib.Path(parent_dir, app_dir)
-
-        shutil.make_archive(archive_name, format, parent_dir, os.path.basename(output_path))
-        logging.info(f"App packaged successfully as {archive_name}.{format}")
-
+        # Ensure the directory exists before writing the file
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(content)
+            logging.info(f"Successfully wrote content to file: {file_path}")
+    except IOError as e:
+        logging.error(f"Error writing to file {file_path}: {e}")
+        sys.exit(1)
     except Exception as e:
-        logging.error(f"Error packaging the app: {e}")
+        logging.error(f"An unexpected error occurred while writing to the file: {e}")
         sys.exit(1)
 
-
-def main():
-    # --- FIX: Initialize source_path here to prevent NameError ---
-    source_path = None
-
-    try:
-        parser = argparse.ArgumentParser(description="App Builder")
-        parser.add_argument('source_path', type=str, help="Path to the source directory")
-        args = parser.parse_args()
-
-        # Check if the provided source path is valid
-        if not os.path.isdir(args.source_path):
-            logging.error(f"{args.source_path} is not a valid directory.")
-            sys.exit(1)
-
-        logging.info(f"Initial source path provided: {args.source_path}")
-
-        # Check if "lab-guides" subfolder exists and has contents
-        lab_guides_path = pathlib.Path(args.source_path, "lab-guides")
-        if lab_guides_path.is_dir() and any(lab_guides_path.iterdir()):
-            logging.info(f"'lab-guides' folder found with content. Using it as the source path.")
-            source_path = str(lab_guides_path)
+def load_metadata(source_path):
+    metadata_files = ['metadata.yml', 'metadata.yaml']
+    for metadata_file in metadata_files:
+        if os.name == 'nt':
+            metadata_yaml = ntpath.join(source_path, metadata_file)
         else:
-            logging.info(f"'lab-guides' folder not found or empty. Using the provided source path.")
-            source_path = args.source_path
+            metadata_yaml = os.path.join(source_path, metadata_file)
 
-    except argparse.ArgumentError as e:
-        logging.error(f"Argument parsing error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        logging.error(f"An unexpected error occurred while parsing arguments: {e}")
-        sys.exit(1)
+        if os.path.isfile(metadata_yaml):
+            try:
+                logging.info(f"Loading metadata from {metadata_yaml}...")
+                with open(metadata_yaml, 'r', encoding="utf-8") as f:
+                    metadata = yaml.safe_load(f)
+                logging.info(f"Successfully loaded metadata.")
+                return metadata
+            except Exception as e:
+                logging.error(f"Error loading or parsing {metadata_yaml}: {e}")
+                sys.exit(1)
 
-    # --- Added check after the try-except block for robustness ---
-    if source_path is None:
-        logging.error("Source path could not be determined after argument parsing. Exiting.")
-        sys.exit(1)
+    # If we get here, no metadata file was found
+    logging.error("No 'metadata.yaml' or 'metadata.yml' file found. It's a prerequisite 😉")
+    sys.exit(1)
 
-    logging.info(f"Final source path in use: {source_path}")
 
-    command = os.path.basename(sys.argv[0])
-    guide_name_pattern = re.compile(r'^\d{2}-(?!.*answers).*\.md$')
+# NEW FUNCTION TO COPY IMAGE FILES WITH SUBFOLDERS (Corrected)
+def copy_images_with_subfolders(source_base_dir, final_images_target_dir):
+    """
+    Copies image files from the source 'images' directory to the specified
+    final target directory, preserving subfolder structure.
 
-    try:
-        # Ensure the source path contains .md files
-        md_files = [f for f in os.listdir(source_path) if f.endswith('.md')]
-        if not md_files:
-            logging.error(f"No .md files found in {source_path}")
-            logging.error("Are you in the right directory?")
-            sys.exit(1)
+    Args:
+        source_base_dir (str): The root directory where the source 'images' folder is located.
+                                E.g., '/path/to/your/project'
+        final_images_target_dir (pathlib.Path or str): The absolute path to the directory where images
+                                       (including their subfolders) should be copied.
+                                       E.g., '/path/to/your/output_app/appserver/static/images'
+    """
+    source_images_folder = os.path.join(source_base_dir, 'images')
 
-        if not any(re.search(guide_name_pattern, s) for s in md_files):
-            logging.error("No guide files found.")
-            sys.exit(1)
+    if not os.path.isdir(source_images_folder):
+        logging.warning(f"Source images folder not found: {source_images_folder}. No images to copy.")
+        return
 
-    except Exception as e:
-        logging.error(f"Error processing source path {source_path}: {e}")
-        sys.exit(1)
+    # The target_images_folder is now directly provided as final_images_target_dir
+    target_images_folder = final_images_target_dir
 
-    # Load metadata from the source path
-    metadata = load_metadata(source_path)
+    logging.info(f"Starting image copy from '{source_images_folder}' to '{target_images_folder}'")
 
-    # Read metadata and set up app variables
-    course_title = metadata.get("course_title")
-    version = metadata.get("version")
-    app_dir = course_title.lower().replace(" ", "_") + "_app"
-    description = metadata.get("description")
+    # Ensure the base target directory exists before walking
+    os.makedirs(target_images_folder, exist_ok=True)
 
-    # Set up directory paths for the app structure
-    output_path = pathlib.Path(source_path, app_dir) # This is the app's root directory
-    os.makedirs(output_path, exist_ok
+    for root, _, files in os.walk(source_images_folder):
+        relative_path = os.path.relpath(root, source_images_folder)
+        destination_dir = os.path.join(target_images_folder, relative_path)
+
+        # Create destination directory if it doesn't exist
+        os.makedirs(destination_dir, exist_ok=True)
+        logging.debug(f"Ensured directory exists: {destination_dir}")
+
+        for file in files:
+            source_file_path = os.path.join(root, file)
+            destination_file_path = os.path.join(destination_dir, file)
+
+            try:
+                # You might want to filter by image extensions here if not all files in 'images'
+                # are actually images (e.g., .png, .jpg, .gif, .svg).
+                # For now, it copies all files found.
+                shutil.copy2(source_file_path, destination_file_path)
+                logging.debug(f"Copied: {source_file_path} to {destination_file_path}")
+            except Exception as e:
+                logging.error(f"Failed to copy {source_file_path} to {destination_file_path}: {e}")
+
+    logging.info("Image copying process completed.")
