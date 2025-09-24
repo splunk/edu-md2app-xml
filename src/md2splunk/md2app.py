@@ -9,7 +9,8 @@ import ntpath
 import logging
 
 from md2splunk.xml_generator import generate_nav, generate_guides
-from md2splunk.file_handler import read_file, write_file, load_metadata
+# Updated import to get the new image copying function
+from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,11 +20,13 @@ logging.basicConfig(
     ]
 )
 
+# --- Top-level functions (generate_app_dot_conf, generate_metadata, etc.) ---
+# These functions are defined directly in md2app.py, so they don't need to be imported from file_handler.
 
 def generate_app_dot_conf(default_path, course_title, version, description):
     app_dot_conf = f'''[install]
 is_configured = false
-state = enabled   
+state = enabled
 build = 1
 
 [launcher]
@@ -54,27 +57,16 @@ owner = supportUser
     write_file(default_meta_path, file)
 
 
-def copy_images_to_static(source_path, static_path):
-    try:
-        images_src_dir = pathlib.Path(source_path, 'images')
-        images_dst_dir = pathlib.Path(static_path, 'images')
-
-        if os.path.exists(images_src_dir):
-            if not os.path.exists(images_dst_dir):
-                os.makedirs(images_dst_dir)
-
-            for image_file in os.listdir(images_src_dir):
-                if image_file.endswith('.png'):
-                    image_src_path = pathlib.Path(images_src_dir, image_file)
-                    image_dst_path = pathlib.Path(images_dst_dir, image_file)
-                    shutil.copy(image_src_path, image_dst_path)
-            logging.info(f"Copied images from {images_src_dir} to {images_dst_dir}")
-        else:
-            logging.warning(f"No 'images' directory found in {images_src_dir}")
-
-    except Exception as e:
-        logging.error(f"Error copying images: {e}")
-        sys.exit(1)
+# --- REMOVE THE OLD copy_images_to_static FUNCTION FROM HERE ---
+# It is replaced by the one in file_handler.py
+# def copy_images_to_static(source_path, static_path):
+#     try:
+#         images_src_dir = pathlib.Path(source_path, 'images')
+#         images_dst_dir = pathlib.Path(static_path, 'images')
+#         # ... (old limited implementation) ...
+#     except Exception as e:
+#         logging.error(f"Error copying images: {e}")
+#         sys.exit(1)
 
 
 import importlib.resources # Make sure this import is at the top of main.py
@@ -128,6 +120,9 @@ def package_app(output_path, app_dir):
 
 
 def main():
+    # --- FIX: Initialize source_path here to prevent NameError ---
+    source_path = None
+
     try:
         parser = argparse.ArgumentParser(description="App Builder")
         parser.add_argument('source_path', type=str, help="Path to the source directory")
@@ -142,7 +137,7 @@ def main():
 
         # Check if "lab-guides" subfolder exists and has contents
         lab_guides_path = pathlib.Path(args.source_path, "lab-guides")
-        if lab_guides_path.is_dir() and any(lab_guides_path.iterdir()):  # Check if directory exists and is not empty
+        if lab_guides_path.is_dir() and any(lab_guides_path.iterdir()):
             logging.info(f"'lab-guides' folder found with content. Using it as the source path.")
             source_path = str(lab_guides_path)
         else:
@@ -152,9 +147,13 @@ def main():
     except argparse.ArgumentError as e:
         logging.error(f"Argument parsing error: {e}")
         sys.exit(1)
-
     except Exception as e:
         logging.error(f"An unexpected error occurred while parsing arguments: {e}")
+        sys.exit(1)
+
+    # --- Added check after the try-except block for robustness ---
+    if source_path is None:
+        logging.error("Source path could not be determined after argument parsing. Exiting.")
         sys.exit(1)
 
     logging.info(f"Final source path in use: {source_path}")
@@ -188,57 +187,5 @@ def main():
     description = metadata.get("description")
 
     # Set up directory paths for the app structure
-    output_path = pathlib.Path(source_path, app_dir)
-    os.makedirs(output_path, exist_ok=True)
-
-    appserver_path = pathlib.Path(output_path, 'appserver')
-    default_path = pathlib.Path(output_path, 'default')
-    os.makedirs(default_path, exist_ok=True)
-
-    static_path = pathlib.Path(appserver_path, 'static')
-    os.makedirs(static_path, exist_ok=True)
-
-    images_path = pathlib.Path(static_path, 'images')
-    os.makedirs(images_path, exist_ok=True)
-
-    panels_path = pathlib.Path(output_path, 'default/data/ui/panels/')
-    os.makedirs(panels_path, exist_ok=True)
-
-    views_path = pathlib.Path(output_path, 'default/data/ui/views')
-    os.makedirs(views_path, exist_ok=True)
-
-    metadata_path = pathlib.Path(output_path, 'metadata')
-    os.makedirs(metadata_path, exist_ok=True)
-
-    app_dict = {
-        'source_path': source_path,
-        'output_path': output_path,
-        'appserver_path': appserver_path,
-        'default_path': default_path,
-        'static_path': static_path,
-        'images_path': images_path,
-        'panels_path': panels_path,
-        'views_path': views_path,
-        'metadata_path': metadata_path,
-        'command': command,
-        'app_dir': app_dir,
-        'guide_name_pattern': guide_name_pattern,
-        'img_tag_regex': r'<img[^>]+src="([^"]+)"',
-    }
-
-    # Generate app components and package the app
-    generate_metadata(metadata_path)
-    generate_app_dot_conf(default_path, course_title, version, description)
-    copy_images_to_static(source_path, static_path)
-    copy_styles(static_path)
-
-    for file in os.listdir(source_path):
-        if file == 'custom.css':
-            copy_custom_css_to_static(source_path, static_path)
-
-    generate_nav(app_dict)
-    generate_guides(app_dict)
-    package_app(output_path, app_dir)
-
-if __name__ == '__main__':
-    main()
+    output_path = pathlib.Path(source_path, app_dir) # This is the app's root directory
+    os.makedirs(output_path, exist_ok
