@@ -2,7 +2,9 @@ import os
 import re
 import markdown
 from datetime import datetime
+import logging # Ensure logging is imported here if not already
 
+# Assuming update_img_src is in md2splunk.image_handler
 from md2splunk.image_handler import update_img_src
 
 
@@ -13,18 +15,17 @@ def generate_html(pdf_dict, md):
     """
     Generate HTML from Markdown.
 
-    Parameters: 
-    - md: Markdown. 
-    - logo_path: Path to the corporate logo for page header
-    - course_title: Title of the course for footer
-    - source_path: Path to the source file
+    Parameters:
+    - md: Markdown.
+    - pdf_dict: A dictionary containing various parameters like logo_path, course_title, etc.
+                This dict should also contain 'img_tag_regex', 'command', 'app_dir'.
 
-    Returns: 
+    Returns:
     - string: Pasteurized HTML
     """
 
     # See: https://facelessuser.github.io/pymdown-extensions/usage_notes/
-    # See: https://facelessuser.github.io/pymdown-extensions/extensions/blocks/plugins/admonition/
+    # See: https://facelessuser.github.io/pymdown-extensions/extensions/blocks/admonition/
     extensions = [
         'pymdownx.extra',
         'pymdownx.emoji',
@@ -33,10 +34,9 @@ def generate_html(pdf_dict, md):
         'pymdownx.blocks.details',
     ]
 
-    # md = pdf_dict.get('md')
     logo_path = pdf_dict.get('logo_path')
     course_title = pdf_dict.get('course_title')
-    source_path = pdf_dict.get('source_path')
+    # source_path = pdf_dict.get('source_path') # Not directly used in HTML generation here
     year = datetime.now().year
     opening_tags = f"""
 <html>
@@ -50,7 +50,7 @@ def generate_html(pdf_dict, md):
     </header>
     <footer id="footer">
         <span>
-            ©{datetime.now().year} Splunk LLC. All rights reserved. 
+            ©{datetime.now().year} Splunk LLC. All rights reserved.
         </span>
         <span style="content: counter(page)">
         </span>
@@ -68,8 +68,11 @@ def generate_html(pdf_dict, md):
     html = markdown.markdown(md, extensions=extensions)
     html = f"{opening_tags}{html}{closing_tags}"
 
-    # html_absolute_src = update_img_src(img_tag_regex, html, source_path)
-    print(html)
+    # --- FIX: Uncomment this line and pass the correct dictionary ---
+    # The pdf_dict (which is actually app_dict from main.py) contains all the necessary info
+    html = update_img_src(pdf_dict, html) # Pass pdf_dict as the config dictionary
+    # --- END FIX ---
+
+    logging.debug("Generated HTML content after image src update:")
+    # print(html) # Avoid printing large HTML to console unless debugging specific output
     return html
-
-
