@@ -97,9 +97,9 @@ def copy_custom_css_to_static(source_path: str, static_path: str):
 
 
 def package_app(output_path, app_dir):
-    """Packages the generated Splunk app into a .zip archive."""
+    """Packages the generated Splunk app into a .tar file."""
     try:
-        format = 'zip'
+        format = 'tar'
         parent_dir = os.path.dirname(output_path)
         archive_name = pathlib.Path(parent_dir, app_dir)
 
