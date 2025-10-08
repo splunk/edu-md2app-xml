@@ -42,6 +42,13 @@ check_for_updates = 0
 [ui]
 is_visible = true
 label = {course_title}
+
+[access]
+read = *
+write = admin,ess_admin
+owner = nobody
+roles = admin,ess_admin,ess_user
+        
         '''
     app_dot_conf_path = pathlib.Path(default_path, 'app.conf')
     write_file(app_dot_conf_path, app_dot_conf)
@@ -97,9 +104,9 @@ def copy_custom_css_to_static(source_path: str, static_path: str):
 
 
 def package_app(output_path, app_dir):
-    """Packages the generated Splunk app into a .zip archive."""
+    """Packages the generated Splunk app into a .tar file."""
     try:
-        format = 'zip'
+        format = 'tar'
         parent_dir = os.path.dirname(output_path)
         archive_name = pathlib.Path(parent_dir, app_dir)
 
