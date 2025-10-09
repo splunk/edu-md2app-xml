@@ -116,6 +116,7 @@ def add_custom_styles(html):
 
 def generate_nav(app_dict):
     source_path = app_dict.get('source_path')
+    md_files_path = app_dict.get('md_files_path', source_path)  # Fallback to source_path for backward compatibility
     default_path = app_dict.get('default_path')
     guide_name_pattern = app_dict.get('guide_name_pattern')
 
@@ -133,7 +134,7 @@ def generate_nav(app_dict):
     guides_collection = etree.SubElement(nav, 'collection', label="Lab Guides")
 
     # Add views to the collection, excluding "00-introduction"
-    sorted_path = sorted(os.listdir(source_path))
+    sorted_path = sorted(os.listdir(md_files_path))
     for file_name in sorted_path:
         if guide_name_pattern.match(file_name):
             view_name = os.path.splitext(file_name)[0]
@@ -141,7 +142,7 @@ def generate_nav(app_dict):
                 etree.SubElement(guides_collection, 'view', name=view_name)
 
     # --- NEW FEATURE: Check for downloads.md and add to navigation if it exists ---
-    downloads_md_path = os.path.join(source_path, "downloads.md")
+    downloads_md_path = os.path.join(md_files_path, "downloads.md")
     if os.path.exists(downloads_md_path): # Check if downloads.md exists. [5, 7, 8, 9, 10]
         print(f"Found {downloads_md_path}, adding 'Downloads' collection to navigation.")
         downloads_collection = etree.SubElement(nav, 'collection', label="Downloads") # Create new collection. [11, 12, 13, 14, 15]
@@ -158,19 +159,20 @@ def generate_nav(app_dict):
 
 def generate_guides(app_dict):
     source_path = app_dict.get('source_path')
+    md_files_path = app_dict.get('md_files_path', source_path)  # Fallback to source_path for backward compatibility
     views_path = app_dict.get('views_path')
     panels_path = app_dict.get('panels_path')
     app_dir = app_dict.get('app_dir')
     guide_name_pattern = app_dict.get('guide_name_pattern')
 
-    # Iterate through all guide files in the source directory
-    for file_name in os.listdir(source_path):
+    # Iterate through all guide files in the markdown files directory
+    for file_name in os.listdir(md_files_path):
         # --- MODIFIED CONDITION: Include downloads.md in processing ---
         # Process files matching the guide pattern OR if it's "downloads.md"
         if guide_name_pattern.match(file_name) or file_name == "downloads.md":
             view_name = os.path.splitext(file_name)[0]
             panel_name = os.path.splitext(file_name)[0] + '.xml'
-            guide_path = os.path.join(source_path, file_name)
+            guide_path = os.path.join(md_files_path, file_name)
 
             # Read the guide file and process its content
             with open(guide_path, 'r', encoding="utf-8") as file:

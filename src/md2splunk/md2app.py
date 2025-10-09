@@ -132,16 +132,19 @@ def main():
             logging.error(f"{args.source_path} is not a valid directory.")
             sys.exit(1)
 
-        logging.info(f"Initial source path provided: {args.source_path}")
+        logging.info(f"Source directory provided: {args.source_path}")
 
-        # Determine the effective source_path (either the provided path or its 'lab-guides' subfolder)
+        # Keep the original source path for metadata and asset loading
+        source_path = args.source_path
+        
+        # Determine where the markdown files are located (lab-guides subfolder or root)
         lab_guides_path = pathlib.Path(args.source_path, "lab-guides")
-        if lab_guides_path.is_dir() and any(lab_guides_path.iterdir()):
-            logging.info(f"'lab-guides' folder found with content. Using it as the source path.")
-            source_path = str(lab_guides_path)
+        if lab_guides_path.is_dir() and any(f.endswith('.md') for f in os.listdir(lab_guides_path) if os.path.isfile(os.path.join(lab_guides_path, f))):
+            logging.info(f"'lab-guides' folder found with .md files. Processing guides from: {lab_guides_path}")
+            md_files_path = str(lab_guides_path)
         else:
-            logging.info(f"'lab-guides' folder not found or empty. Using the provided source path.")
-            source_path = args.source_path
+            logging.info(f"'lab-guides' folder not found or contains no .md files. Processing guides from root: {source_path}")
+            md_files_path = source_path
 
     except argparse.ArgumentError as e:
         logging.error(f"Argument parsing error: {e}")
@@ -155,16 +158,17 @@ def main():
         logging.error("Source path could not be determined after argument parsing. Exiting.")
         sys.exit(1)
 
-    logging.info(f"Final source path in use: {source_path}")
+    logging.info(f"Metadata will be loaded from: {source_path}")
+    logging.info(f"Markdown files will be processed from: {md_files_path}")
 
     command = os.path.basename(sys.argv[0]) # This will be 'md2app-xml.exe' or similar
     guide_name_pattern = re.compile(r'^\d{2}-(?!.*answers).*\.md$')
 
     try:
-        # Ensure the source path contains .md files
-        md_files = [f for f in os.listdir(source_path) if f.endswith('.md')]
+        # Ensure the markdown files path contains .md files
+        md_files = [f for f in os.listdir(md_files_path) if f.endswith('.md')]
         if not md_files:
-            logging.error(f"No .md files found in {source_path}")
+            logging.error(f"No .md files found in {md_files_path}")
             logging.error("Are you in the right directory?")
             sys.exit(1)
 
@@ -173,7 +177,7 @@ def main():
             sys.exit(1)
 
     except Exception as e:
-        logging.error(f"Error processing source path {source_path}: {e}")
+        logging.error(f"Error processing markdown files path {md_files_path}: {e}")
         sys.exit(1)
 
     # Load metadata from the source path
@@ -216,6 +220,7 @@ def main():
 
     app_dict = {
         'source_path': source_path,
+        'md_files_path': md_files_path,  # Path where .md files are located (lab-guides or root)
         'output_path': output_path,
         'appserver_path': appserver_path,
         'default_path': default_path,
