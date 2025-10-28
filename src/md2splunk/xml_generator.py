@@ -29,8 +29,12 @@ extension_configs = {
             'caution',
             'warning',
             'danger',
-            'answers',
             'custom'
+        ]
+    },
+    "pymdownx.blocks.details": {
+        'types': [
+            'answers'
         ]
     }
 }
@@ -53,21 +57,50 @@ closing_tags = f'''<div>
 
 
 def convert_colons_to_blocks(md_text):
-    import re
-    import markdown  # pip install markdown
-
     # Normalize line endings
     md_text = md_text.replace('\r\n', '\n').replace('\r', '\n')
 
-    # Convert ::: answers ... ::: to HTML <details> block (convert content to HTML)
-    def answers_block_replacer(match):
-        content_md = match.group(1).strip()
-        content_html = markdown.markdown(content_md)
-        return f'<details class="answers">\n<summary>Answers</summary>\n{content_html}\n</details>\n'
-
+    # Convert ::: answers ... ::: to /// answers format for pymdownx.blocks.details
+    def answers_replacer(match):
+        content = match.group(1)
+        
+        # Check if answers block is indented (part of a list) by looking at the text before the match
+        start_pos = match.start()
+        text_before = md_text[:start_pos]
+        
+        # Look at the last three lines before this match
+        lines_before = text_before.split('\n')[-3:] 
+        
+        # If we see numbered list items recently, treat as indented
+        is_in_list = any(re.match(r'^\s*\d+\.', line) for line in lines_before)
+        
+        if is_in_list:
+            # Use exactly 4 spaces for proper list item nesting
+            indent = '    '
+            # Re-indent all content lines to be consistent with the block indentation  
+            content_lines = content.split('\n')
+            indented_content = []
+            for line in content_lines:
+                if line.strip():  # If line has content
+                    indented_content.append(indent + line.strip())
+                else:  # Empty line
+                    indented_content.append('')
+            content = '\n'.join(indented_content)
+        else:
+            # No indentation for standalone blocks - just clean up the content
+            indent = ''
+            content = content.strip()
+            
+        # For list items, we need blank lines before and after the block for proper parsing
+        if is_in_list:
+            return f'\n{indent}/// answers\n{content}\n{indent}///\n'
+        else:
+            return f'{indent}/// answers\n{content}\n{indent}///'
+    
+    # Capture the block boundaries including any leading whitespace
     md_text = re.sub(
-        r'^:::\s*answers\s*\n(.*?)\n:::\s*(?:\n|\Z)',
-        answers_block_replacer,
+        r'^\s*:::\s*answers\s*\n(.*?)\n\s*:::\s*(?=\n|$)',
+        answers_replacer,
         md_text,
         flags=re.DOTALL | re.MULTILINE
     )
