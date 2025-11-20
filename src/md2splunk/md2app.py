@@ -107,14 +107,39 @@ def package_app(output_path, app_dir):
     """Packages the generated Splunk app into a .tar file."""
     try:
         format = 'tar'
-        parent_dir = os.path.dirname(output_path)
-        archive_name = pathlib.Path(parent_dir, app_dir)
+        output_path = pathlib.Path(output_path)
+        
+        # Create the archive in the parent directory of the app
+        parent_dir = output_path.parent
+        archive_name = parent_dir / app_dir
+        
+        # Ensure the app directory exists before trying to package it
+        if not output_path.exists():
+            logging.error(f"App directory does not exist: {output_path}")
+            sys.exit(1)
+        
+        # List contents to verify what we're packaging
+        app_contents = list(output_path.iterdir())
+        if not app_contents:
+            logging.warning(f"App directory is empty: {output_path}")
+        else:
+            logging.info(f"Packaging app with {len(app_contents)} items: {[item.name for item in app_contents]}")
 
-        shutil.make_archive(str(archive_name), format, str(output_path), '.') # Archive contents of output_path
-        logging.info(f"App packaged successfully as {archive_name}.{format}")
+        # Create the tar archive
+        shutil.make_archive(str(archive_name), format, str(output_path), '.')
+        
+        # Verify the archive was created
+        archive_file = pathlib.Path(f"{archive_name}.{format}")
+        if archive_file.exists():
+            archive_size = archive_file.stat().st_size
+            logging.info(f"App packaged successfully as {archive_file} (size: {archive_size} bytes)")
+        else:
+            logging.error(f"Archive was not created: {archive_file}")
+            sys.exit(1)
 
     except Exception as e:
         logging.error(f"Error packaging the app: {e}")
+        logging.exception("Full traceback:")
         sys.exit(1)
 
 
@@ -191,7 +216,15 @@ def main():
 
     # Set up directory paths for the app structure
     # output_path is the root of the new Splunk app (e.g., 'my_course_app')
-    output_path = pathlib.Path(pathlib.Path(source_path).parent, app_dir) # Place app next to source, not inside
+    # If we're processing from lab-guides, put the app inside lab-guides directory
+    # Otherwise, place it next to the source directory
+    if md_files_path != source_path:  # We're using lab-guides
+        output_path = pathlib.Path(md_files_path, app_dir)  # Place app inside lab-guides
+        logging.info(f"Placing app inside lab-guides directory: {output_path}")
+    else:  # We're processing from root
+        output_path = pathlib.Path(pathlib.Path(source_path).parent, app_dir)  # Place app next to source
+        logging.info(f"Placing app next to source directory: {output_path}")
+    
     os.makedirs(output_path, exist_ok=True)
     logging.info(f"App output directory: {output_path}")
 
@@ -236,27 +269,50 @@ def main():
     }
 
     # Generate app components and package the app
+    logging.info("=== Starting app component generation ===")
+    
+    logging.info("Generating metadata...")
     generate_metadata(metadata_path)
+    
+    logging.info("Generating app.conf...")
     generate_app_dot_conf(default_path, course_title, version, description)
 
     # --- Call the new, robust image copying function ---
+    logging.info("Copying images...")
     copy_images_with_subfolders(
         source_base_dir=source_path,
         final_images_target_dir=images_path # Pass the already calculated correct target
     )
     # --- END IMAGE COPYING CALL ---
 
+    logging.info("Copying styles...")
     copy_styles(static_path)
 
     # Check for custom.css in the source_path and copy it
     custom_css_source = pathlib.Path(source_path) / 'custom.css'
     if custom_css_source.exists():
+        logging.info("Copying custom CSS...")
         copy_custom_css_to_static(source_path, static_path)
     else:
         logging.info(f"No custom.css found in {source_path}. Using default styles.")
 
+    logging.info("Generating navigation...")
     generate_nav(app_dict)
+    
+    logging.info("Generating guides...")
     generate_guides(app_dict) # This is where update_img_src will be called internally
+    
+    # Verify app contents before packaging
+    logging.info(f"=== App generation complete. Verifying contents of {output_path} ===")
+    if output_path.exists():
+        for item in output_path.rglob('*'):
+            if item.is_file():
+                logging.info(f"Created: {item.relative_to(output_path)} (size: {item.stat().st_size} bytes)")
+    else:
+        logging.error(f"App directory was not created: {output_path}")
+        sys.exit(1)
+    
+    logging.info("Packaging app...")
     package_app(output_path, app_dir)
 
     logging.info(f"App '{app_dir}' successfully built at {output_path}")

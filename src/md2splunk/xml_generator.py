@@ -105,20 +105,50 @@ def convert_colons_to_blocks(md_text):
         flags=re.DOTALL | re.MULTILINE
     )
 
-    # Convert ::: <type> (excluding 'answers') to /// <type>
-    md_text = re.sub(
-        r'^:::\s*(?!answers\b)(\w+)\s*$',
-        lambda m: f'/// {m.group(1)}',
-        md_text,
-        flags=re.MULTILINE
-    )
+    # Convert ::: <admonition_type> ... ::: to /// <admonition_type> format for pymdownx.blocks.admonition
+    def admonition_replacer(match):
+        admonition_type = match.group(1)
+        content = match.group(2)
+        
+        # Check if admonition block is indented (part of a list) by looking at the text before the match
+        start_pos = match.start()
+        text_before = md_text[:start_pos]
+        
+        # Look at the last three lines before this match
+        lines_before = text_before.split('\n')[-3:] 
+        
+        # If we see numbered list items recently, treat as indented
+        is_in_list = any(re.match(r'^\s*\d+\.', line) for line in lines_before)
+        
+        if is_in_list:
+            # Use exactly 4 spaces for proper list item nesting
+            indent = '    '
+            # Re-indent all content lines to be consistent with the block indentation  
+            content_lines = content.split('\n')
+            indented_content = []
+            for line in content_lines:
+                if line.strip():  # If line has content
+                    indented_content.append(indent + line.strip())
+                else:  # Empty line
+                    indented_content.append('')
+            content = '\n'.join(indented_content)
+        else:
+            # No indentation for standalone blocks - just clean up the content
+            indent = ''
+            content = content.strip()
+            
+        # For list items, we need blank lines before and after the block for proper parsing
+        if is_in_list:
+            return f'\n{indent}/// {admonition_type}\n{content}\n{indent}///\n'
+        else:
+            return f'{indent}/// {admonition_type}\n{content}\n{indent}///'
 
-    # Convert closing ::: to /// followed by a newline
+    # Convert ::: <admonition_type> ... ::: blocks (excluding 'answers')
     md_text = re.sub(
-        r'^:::\s*(?:\n|\Z)',
-        r'///\n',
+        r'^\s*:::\s*(?!answers\b)(\w+)\s*\n(.*?)\n\s*:::\s*(?=\n|$)',
+        admonition_replacer,
         md_text,
-        flags=re.MULTILINE
+        flags=re.DOTALL | re.MULTILINE
     )
 
     return md_text
