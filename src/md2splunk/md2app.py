@@ -11,8 +11,8 @@ import importlib.resources # <--- THIS IS THE FIX: Ensure importlib is imported 
 
 # Import necessary functions from your other modules
 from md2splunk.xml_generator import generate_nav, generate_guides
-# Ensure copy_images_with_subfolders is imported from file_handler
-from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders
+# Ensure copy_images_with_subfolders, copy_static_assets, and process_download_links are imported from file_handler
+from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders, copy_static_assets, process_download_links
 
 logging.basicConfig(
     level=logging.INFO,
@@ -125,8 +125,11 @@ def package_app(output_path, app_dir):
         else:
             logging.info(f"Packaging app with {len(app_contents)} items: {[item.name for item in app_contents]}")
 
-        # Create the tar archive
-        shutil.make_archive(str(archive_name), format, str(output_path), '.')
+        # Create the tar archive with proper Splunk app structure
+        # We need to archive from the parent directory and include the app directory
+        parent_dir = output_path.parent
+        app_dir_name = output_path.name
+        shutil.make_archive(str(archive_name), format, str(parent_dir), app_dir_name)
         
         # Verify the archive was created
         archive_file = pathlib.Path(f"{archive_name}.{format}")
@@ -186,7 +189,7 @@ def main():
     logging.info(f"Metadata will be loaded from: {source_path}")
     logging.info(f"Markdown files will be processed from: {md_files_path}")
 
-    command = os.path.basename(sys.argv[0]) # This will be 'md2app-xml.exe' or similar
+    command = os.path.basename(sys.argv[0])
     guide_name_pattern = re.compile(r'^\d{2}-(?!.*answers).*\.md$')
 
     try:
@@ -228,7 +231,6 @@ def main():
     os.makedirs(output_path, exist_ok=True)
     logging.info(f"App output directory: {output_path}")
 
-
     appserver_path = pathlib.Path(output_path, 'appserver')
     os.makedirs(appserver_path, exist_ok=True)
 
@@ -264,6 +266,7 @@ def main():
         'metadata_path': metadata_path,
         'command': command,
         'app_dir': app_dir,
+        'course_title': course_title,
         'guide_name_pattern': guide_name_pattern,
         'img_tag_regex': r'src=["\'](images/[^"\']+|./images/[^"\']+)["\']',
     }
@@ -284,6 +287,13 @@ def main():
         final_images_target_dir=images_path # Pass the already calculated correct target
     )
     # --- END IMAGE COPYING CALL ---
+
+    # Copy static assets from static folder if it exists (in md_files_path)
+    logging.info("Checking for and copying static assets...")
+    copy_static_assets(
+        source_base_dir=md_files_path,
+        static_path=static_path
+    )
 
     logging.info("Copying styles...")
     copy_styles(static_path)

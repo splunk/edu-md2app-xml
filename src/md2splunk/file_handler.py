@@ -5,6 +5,7 @@ import ntpath
 import importlib.resources
 import logging
 import shutil # <--- ADD THIS IMPORT
+import pathlib
 
 logging.basicConfig(
     level=logging.INFO,
@@ -188,3 +189,184 @@ def copy_images_with_subfolders(source_base_dir, final_images_target_dir):
                 logging.error(f"Failed to copy {source_file_path} to {destination_file_path}: {e}")
 
     logging.info("Image copying process completed.")
+
+
+def copy_static_assets(source_base_dir, static_path):
+    """
+    Copies all assets from a 'static' folder in the source directory to the static_path folder.
+    
+    Args:
+        source_base_dir (str): The root directory where the source 'static' folder is located.
+                                E.g., '/path/to/your/project'
+        static_path (pathlib.Path or str): The absolute path to the static directory where assets
+                                           should be copied.
+                                           E.g., '/path/to/your/output_app/appserver/static'
+    """
+    source_static_folder = os.path.join(source_base_dir, 'static')
+    
+    if not os.path.isdir(source_static_folder):
+        logging.info(f"No 'static' folder found in source directory: {source_base_dir}. Skipping static asset copy.")
+        return
+    
+    # Convert to string if it's a Path object
+    target_static_folder = str(static_path)
+    
+    logging.info(f"Found 'static' folder in source directory. Copying assets from '{source_static_folder}' to '{target_static_folder}'")
+    
+    # Ensure the target directory exists
+    os.makedirs(target_static_folder, exist_ok=True)
+    
+    try:
+        # Walk through all files and subdirectories in the source static folder
+        for root, dirs, files in os.walk(source_static_folder):
+            # Calculate the relative path from the source static folder
+            relative_path = os.path.relpath(root, source_static_folder)
+            
+            # Create the corresponding directory in the target
+            if relative_path == '.':
+                # We're in the root of the static folder
+                destination_dir = target_static_folder
+            else:
+                destination_dir = os.path.join(target_static_folder, relative_path)
+            
+            # Ensure destination directory exists
+            os.makedirs(destination_dir, exist_ok=True)
+            logging.debug(f"Ensured directory exists: {destination_dir}")
+            
+            # Copy all files in this directory
+            for file in files:
+                source_file_path = os.path.join(root, file)
+                destination_file_path = os.path.join(destination_dir, file)
+                
+                try:
+                    shutil.copy2(source_file_path, destination_file_path)
+                    logging.info(f"Copied static asset: {file} to {destination_file_path}")
+                except Exception as e:
+                    logging.error(f"Failed to copy static asset {source_file_path} to {destination_file_path}: {e}")
+    
+    except Exception as e:
+        logging.error(f"Error walking through static folder {source_static_folder}: {e}")
+    
+    logging.info("Static asset copying process completed.")
+
+
+def process_download_links(html_content, md_files_path, static_path, app_dir, course_title=None):
+    """
+    Processes download links in HTML content to copy linked assets and update the HTML with new URLs.
+    
+    Args:
+        html_content (str): HTML content to process
+        md_files_path (str): Path where markdown files are located
+        static_path (pathlib.Path or str): Path to the static directory in the app
+        app_dir (str): Name of the app directory for URL generation
+        course_title (str): Course title for template variable replacement (legacy support)
+        
+    Returns:
+        str: Updated HTML content with processed download links
+    """
+    import re
+    import glob
+    from urllib.parse import unquote
+    
+    if not html_content:
+        return html_content
+    
+    logging.info(f"Processing download links...")
+    
+    # Create downloads directory in static folder
+    downloads_dir = pathlib.Path(static_path) / 'downloads'
+    downloads_dir.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Created downloads directory: {downloads_dir}")
+    
+    # Regex to find HTML links: <a href="path">text</a>
+    link_pattern = r'<a\s+[^>]*href=["\'](([^"\']+))["\']\s*[^>]*>([^<]+)</a>'
+    
+    # Find all links first for debugging
+    all_links = re.findall(link_pattern, html_content)
+    logging.info(f"Found {len(all_links)} links to process: {[link[0] for link in all_links]}")
+    
+    def replace_link(match):
+        full_tag = match.group(0)
+        original_path = match.group(1)
+        link_text = match.group(3)
+        
+        logging.info(f"Processing link: {original_path}")
+        
+        # Skip if it's already a URL (http, https, etc.)
+        if original_path.startswith(('http://', 'https://', 'mailto:', '#', '/static/')):
+            logging.info(f"Skipping external/processed link: {original_path}")
+            return full_tag  # Return unchanged
+        
+        # Handle legacy template variables like {course_title}
+        processed_path = original_path
+        if course_title and '{course_title}' in processed_path:
+            processed_path = processed_path.replace('{course_title}', course_title)
+            logging.info(f"Replaced template variable: {original_path} -> {processed_path}")
+        
+        md_files_path_obj = pathlib.Path(md_files_path)
+        
+        # Check if this is a wildcard pattern (contains *)
+        if '*' in processed_path:
+            logging.info(f"Processing wildcard pattern: {processed_path}")
+            
+            # Create the search pattern relative to md_files_path
+            if processed_path.startswith('./'):
+                # Remove ./ prefix for glob
+                search_pattern = processed_path[2:]
+            else:
+                search_pattern = processed_path
+            
+            # Use glob to find matching files
+            search_path = md_files_path_obj / search_pattern
+            matching_files = glob.glob(str(search_path))
+            
+            if not matching_files:
+                logging.warning(f"No files found matching pattern: {search_path}")
+                return full_tag  # Return unchanged if no matches
+            
+            if len(matching_files) > 1:
+                logging.warning(f"Multiple files match pattern {search_path}: {matching_files}. Using first match.")
+            
+            # Use the first matching file
+            source_file_path = pathlib.Path(matching_files[0])
+            logging.info(f"Found matching file: {source_file_path}")
+            
+        else:
+            # Handle regular file path (non-wildcard)
+            source_file_path = (md_files_path_obj / processed_path).resolve()
+            logging.info(f"Looking for file at: {source_file_path}")
+            
+            if not source_file_path.exists():
+                logging.warning(f"Download asset not found: {source_file_path} (referenced as {original_path})")
+                return full_tag  # Return unchanged if file doesn't exist
+        
+        # Get the filename
+        filename = source_file_path.name
+        
+        # Check if file already exists in downloads directory to avoid duplicate copying
+        destination_path = downloads_dir / filename
+        
+        if not destination_path.exists():
+            try:
+                # Copy the file to the downloads directory
+                shutil.copy2(source_file_path, destination_path)
+                logging.info(f"Copied download asset: {source_file_path.name} -> downloads/{filename}")
+            except Exception as e:
+                logging.error(f"Failed to copy download asset {source_file_path}: {e}")
+                return full_tag  # Return unchanged if copy fails
+        else:
+            logging.debug(f"Download asset already exists: downloads/{filename}")
+        
+        # Generate the new URL for the Splunk app
+        new_url = f"/static/app/{app_dir}/downloads/{filename}"
+        
+        # Replace the href in the original tag
+        updated_tag = re.sub(r'href=["\'][^"\']*["\']', f'href="{new_url}"', full_tag)
+        
+        logging.info(f"Updated link: {original_path} -> {new_url}")
+        return updated_tag
+    
+    # Replace all HTML links in the content
+    updated_html = re.sub(link_pattern, replace_link, html_content)
+    
+    return updated_html
