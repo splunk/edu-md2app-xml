@@ -272,6 +272,24 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
         return html_content
     
     logging.info(f"Processing download links...")
+    logging.info(f"md_files_path: {md_files_path}")
+    logging.info(f"static_path: {static_path}")
+    logging.info(f"app_dir: {app_dir}")
+    
+    # Debug: List contents of md_files_path to see what's available
+    md_files_path_obj = pathlib.Path(md_files_path)
+    if md_files_path_obj.exists():
+        logging.info(f"Contents of md_files_path ({md_files_path}):")
+        try:
+            for item in md_files_path_obj.iterdir():
+                if item.is_file():
+                    logging.info(f"  FILE: {item.name} (size: {item.stat().st_size} bytes)")
+                elif item.is_dir():
+                    logging.info(f"  DIR: {item.name}/")
+        except Exception as e:
+            logging.error(f"Error listing md_files_path contents: {e}")
+    else:
+        logging.warning(f"md_files_path does not exist: {md_files_path}")
     
     # Create downloads directory in static folder
     downloads_dir = pathlib.Path(static_path) / 'downloads'
@@ -322,38 +340,26 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
                 # Absolute or relative path from md_files_path
                 search_path = md_files_path_obj / processed_path
             
+            logging.info(f"Searching for files with pattern: {search_path}")
+            
             # Use glob to find matching files
             matching_files = glob.glob(str(search_path))
+            logging.info(f"glob.glob('{search_path}') returned: {matching_files}")
             
-            # Debug: List all files in the search directory to help troubleshoot
-            search_dir = search_path.parent if '*' in search_path.name else search_path
+            # Additional debugging: try to list the directory being searched
+            search_dir = pathlib.Path(search_path).parent
             if search_dir.exists():
-                all_files = list(search_dir.glob('*'))
-                logging.info(f"Files in search directory {search_dir}: {[f.name for f in all_files if f.is_file()]}")
+                logging.info(f"Contents of search directory {search_dir}:")
+                try:
+                    for item in search_dir.iterdir():
+                        if item.is_file():
+                            logging.info(f"  FILE: {item.name}")
+                        elif item.is_dir():
+                            logging.info(f"  DIR: {item.name}/")
+                except Exception as e:
+                    logging.error(f"Error listing search directory: {e}")
             else:
                 logging.warning(f"Search directory does not exist: {search_dir}")
-            
-            # Debug: Also check for artifact directories that might contain the PDFs
-            workspace_root = pathlib.Path.cwd()
-            logging.info(f"Current working directory: {workspace_root}")
-            
-            # List the entire workspace structure to see where artifacts might be
-            logging.info("=== Workspace structure ===")
-            for item in workspace_root.rglob('*'):
-                if item.is_file() and item.suffix == '.pdf':
-                    logging.info(f"PDF found: {item}")
-                elif item.is_dir() and 'lab-guides' in item.name.lower():
-                    logging.info(f"lab-guides directory: {item}")
-            
-            potential_artifact_dirs = list(workspace_root.glob('**/lab-guides'))
-            if potential_artifact_dirs:
-                logging.info(f"Found potential lab-guides directories: {potential_artifact_dirs}")
-                for artifact_dir in potential_artifact_dirs:
-                    artifact_files = list(artifact_dir.glob('*.pdf'))
-                    if artifact_files:
-                        logging.info(f"PDFs found in {artifact_dir}: {[f.name for f in artifact_files]}")
-            else:
-                logging.info("No lab-guides directories found with PDFs")
             
             if not matching_files:
                 logging.warning(f"No files found matching pattern: {search_path}")
