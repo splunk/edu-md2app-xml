@@ -336,6 +336,15 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
             # Debug: Also check for artifact directories that might contain the PDFs
             workspace_root = pathlib.Path.cwd()
             logging.info(f"Current working directory: {workspace_root}")
+            
+            # List the entire workspace structure to see where artifacts might be
+            logging.info("=== Workspace structure ===")
+            for item in workspace_root.rglob('*'):
+                if item.is_file() and item.suffix == '.pdf':
+                    logging.info(f"PDF found: {item}")
+                elif item.is_dir() and 'lab-guides' in item.name.lower():
+                    logging.info(f"lab-guides directory: {item}")
+            
             potential_artifact_dirs = list(workspace_root.glob('**/lab-guides'))
             if potential_artifact_dirs:
                 logging.info(f"Found potential lab-guides directories: {potential_artifact_dirs}")
@@ -343,6 +352,8 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
                     artifact_files = list(artifact_dir.glob('*.pdf'))
                     if artifact_files:
                         logging.info(f"PDFs found in {artifact_dir}: {[f.name for f in artifact_files]}")
+            else:
+                logging.info("No lab-guides directories found with PDFs")
             
             if not matching_files:
                 logging.warning(f"No files found matching pattern: {search_path}")
