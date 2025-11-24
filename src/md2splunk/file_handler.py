@@ -333,6 +333,17 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
             else:
                 logging.warning(f"Search directory does not exist: {search_dir}")
             
+            # Debug: Also check for artifact directories that might contain the PDFs
+            workspace_root = pathlib.Path.cwd()
+            logging.info(f"Current working directory: {workspace_root}")
+            potential_artifact_dirs = list(workspace_root.glob('**/lab-guides'))
+            if potential_artifact_dirs:
+                logging.info(f"Found potential lab-guides directories: {potential_artifact_dirs}")
+                for artifact_dir in potential_artifact_dirs:
+                    artifact_files = list(artifact_dir.glob('*.pdf'))
+                    if artifact_files:
+                        logging.info(f"PDFs found in {artifact_dir}: {[f.name for f in artifact_files]}")
+            
             if not matching_files:
                 logging.warning(f"No files found matching pattern: {search_path}")
                 return full_tag  # Return unchanged if no matches
