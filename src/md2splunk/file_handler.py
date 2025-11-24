@@ -291,6 +291,44 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
     else:
         logging.warning(f"md_files_path does not exist: {md_files_path}")
     
+    # Debug: Also check parent directory and root workspace for PDFs
+    current_dir = pathlib.Path.cwd()
+    logging.info(f"Current working directory: {current_dir}")
+    logging.info(f"Searching for PDF files in current directory and parent directories:")
+    
+    # Check current working directory for PDFs
+    try:
+        pdf_files_cwd = list(current_dir.glob("*.pdf"))
+        if pdf_files_cwd:
+            logging.info(f"PDF files in current directory ({current_dir}):")
+            for pdf in pdf_files_cwd:
+                logging.info(f"  PDF: {pdf.name}")
+        else:
+            logging.info(f"No PDF files found in current directory: {current_dir}")
+            
+        # Check parent directory
+        parent_dir = current_dir.parent
+        pdf_files_parent = list(parent_dir.glob("*.pdf"))
+        if pdf_files_parent:
+            logging.info(f"PDF files in parent directory ({parent_dir}):")
+            for pdf in pdf_files_parent:
+                logging.info(f"  PDF: {pdf.name}")
+        else:
+            logging.info(f"No PDF files found in parent directory: {parent_dir}")
+            
+        # Recursively search for PDFs in current directory tree
+        pdf_files_recursive = list(current_dir.glob("**/*.pdf"))
+        if pdf_files_recursive:
+            logging.info(f"PDF files found recursively from {current_dir}:")
+            for pdf in pdf_files_recursive:
+                relative_path = pdf.relative_to(current_dir)
+                logging.info(f"  PDF: {relative_path}")
+        else:
+            logging.info(f"No PDF files found recursively from: {current_dir}")
+            
+    except Exception as e:
+        logging.error(f"Error searching for PDF files: {e}")
+    
     # Create downloads directory in static folder
     downloads_dir = pathlib.Path(static_path) / 'downloads'
     downloads_dir.mkdir(parents=True, exist_ok=True)
