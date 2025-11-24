@@ -309,16 +309,29 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
         if '*' in processed_path:
             logging.info(f"Processing wildcard pattern: {processed_path}")
             
-            # Create the search pattern relative to md_files_path
+            # For wildcard patterns, resolve relative to the md_files_path directory
+            # where the downloads.md file is located
             if processed_path.startswith('./'):
-                # Remove ./ prefix for glob
-                search_pattern = processed_path[2:]
+                # ./ means same directory as the downloads.md file
+                search_pattern = processed_path[2:]  # Remove ./
+                search_path = md_files_path_obj / search_pattern
+            elif processed_path.startswith('../'):
+                # ../ means parent directory relative to downloads.md file location
+                search_path = md_files_path_obj.parent / processed_path[3:]  # Remove ../
             else:
-                search_pattern = processed_path
+                # Absolute or relative path from md_files_path
+                search_path = md_files_path_obj / processed_path
             
             # Use glob to find matching files
-            search_path = md_files_path_obj / search_pattern
             matching_files = glob.glob(str(search_path))
+            
+            # Debug: List all files in the search directory to help troubleshoot
+            search_dir = search_path.parent if '*' in search_path.name else search_path
+            if search_dir.exists():
+                all_files = list(search_dir.glob('*'))
+                logging.info(f"Files in search directory {search_dir}: {[f.name for f in all_files if f.is_file()]}")
+            else:
+                logging.warning(f"Search directory does not exist: {search_dir}")
             
             if not matching_files:
                 logging.warning(f"No files found matching pattern: {search_path}")
