@@ -272,62 +272,6 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
         return html_content
     
     logging.info(f"Processing download links...")
-    logging.info(f"md_files_path: {md_files_path}")
-    logging.info(f"static_path: {static_path}")
-    logging.info(f"app_dir: {app_dir}")
-    
-    # Debug: List contents of md_files_path to see what's available
-    md_files_path_obj = pathlib.Path(md_files_path)
-    if md_files_path_obj.exists():
-        logging.info(f"Contents of md_files_path ({md_files_path}):")
-        try:
-            for item in md_files_path_obj.iterdir():
-                if item.is_file():
-                    logging.info(f"  FILE: {item.name} (size: {item.stat().st_size} bytes)")
-                elif item.is_dir():
-                    logging.info(f"  DIR: {item.name}/")
-        except Exception as e:
-            logging.error(f"Error listing md_files_path contents: {e}")
-    else:
-        logging.warning(f"md_files_path does not exist: {md_files_path}")
-    
-    # Debug: Also check parent directory and root workspace for PDFs
-    current_dir = pathlib.Path.cwd()
-    logging.info(f"Current working directory: {current_dir}")
-    logging.info(f"Searching for PDF files in current directory and parent directories:")
-    
-    # Check current working directory for PDFs
-    try:
-        pdf_files_cwd = list(current_dir.glob("*.pdf"))
-        if pdf_files_cwd:
-            logging.info(f"PDF files in current directory ({current_dir}):")
-            for pdf in pdf_files_cwd:
-                logging.info(f"  PDF: {pdf.name}")
-        else:
-            logging.info(f"No PDF files found in current directory: {current_dir}")
-            
-        # Check parent directory
-        parent_dir = current_dir.parent
-        pdf_files_parent = list(parent_dir.glob("*.pdf"))
-        if pdf_files_parent:
-            logging.info(f"PDF files in parent directory ({parent_dir}):")
-            for pdf in pdf_files_parent:
-                logging.info(f"  PDF: {pdf.name}")
-        else:
-            logging.info(f"No PDF files found in parent directory: {parent_dir}")
-            
-        # Recursively search for PDFs in current directory tree
-        pdf_files_recursive = list(current_dir.glob("**/*.pdf"))
-        if pdf_files_recursive:
-            logging.info(f"PDF files found recursively from {current_dir}:")
-            for pdf in pdf_files_recursive:
-                relative_path = pdf.relative_to(current_dir)
-                logging.info(f"  PDF: {relative_path}")
-        else:
-            logging.info(f"No PDF files found recursively from: {current_dir}")
-            
-    except Exception as e:
-        logging.error(f"Error searching for PDF files: {e}")
     
     # Create downloads directory in static folder
     downloads_dir = pathlib.Path(static_path) / 'downloads'
@@ -384,21 +328,6 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
             matching_files = glob.glob(str(search_path))
             logging.info(f"glob.glob('{search_path}') returned: {matching_files}")
             
-            # Additional debugging: try to list the directory being searched
-            search_dir = pathlib.Path(search_path).parent
-            if search_dir.exists():
-                logging.info(f"Contents of search directory {search_dir}:")
-                try:
-                    for item in search_dir.iterdir():
-                        if item.is_file():
-                            logging.info(f"  FILE: {item.name}")
-                        elif item.is_dir():
-                            logging.info(f"  DIR: {item.name}/")
-                except Exception as e:
-                    logging.error(f"Error listing search directory: {e}")
-            else:
-                logging.warning(f"Search directory does not exist: {search_dir}")
-            
             if not matching_files:
                 logging.warning(f"No files found matching pattern: {search_path}")
                 return full_tag  # Return unchanged if no matches
@@ -408,7 +337,7 @@ def process_download_links(html_content, md_files_path, static_path, app_dir, co
             
             # Use the first matching file
             source_file_path = pathlib.Path(matching_files[0])
-            logging.info(f"Found matching file: {source_file_path}")
+            logging.info(f"Using matched file: {source_file_path}")
             
         else:
             # Handle regular file path (non-wildcard)
