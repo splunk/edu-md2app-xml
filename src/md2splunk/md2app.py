@@ -228,6 +228,11 @@ def main():
         output_path = pathlib.Path(pathlib.Path(source_path).parent, app_dir)  # Place app next to source
         logging.info(f"Placing app next to source directory: {output_path}")
     
+    # Clean up existing output directory to ensure fresh build
+    if output_path.exists():
+        logging.info(f"Removing existing output directory: {output_path}")
+        shutil.rmtree(output_path)
+    
     os.makedirs(output_path, exist_ok=True)
     logging.info(f"App output directory: {output_path}")
 
