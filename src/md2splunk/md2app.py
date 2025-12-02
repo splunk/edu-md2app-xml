@@ -11,8 +11,8 @@ import importlib.resources # <--- THIS IS THE FIX: Ensure importlib is imported 
 
 # Import necessary functions from your other modules
 from md2splunk.xml_generator import generate_nav, generate_guides
-# Ensure copy_images_with_subfolders, copy_static_assets, and process_download_links are imported from file_handler
-from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders, copy_static_assets, process_download_links
+# Ensure copy_images_with_subfolders, copy_static_assets, copy_app_icons, and process_download_links are imported from file_handler
+from md2splunk.file_handler import read_file, write_file, load_metadata, copy_images_with_subfolders, copy_static_assets, copy_app_icons, process_download_links
 
 logging.basicConfig(
     level=logging.INFO,
@@ -298,6 +298,15 @@ def main():
     copy_static_assets(
         source_base_dir=md_files_path,
         static_path=static_path
+    )
+    
+    # Copy app icons to the app's static directory (output/static)
+    logging.info("Checking for and copying app icons...")
+    app_static_path = pathlib.Path(output_path, 'static')
+    os.makedirs(app_static_path, exist_ok=True)
+    copy_app_icons(
+        source_base_dir=md_files_path,
+        app_static_path=app_static_path
     )
 
     logging.info("Copying styles...")

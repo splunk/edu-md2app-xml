@@ -233,8 +233,18 @@ def copy_static_assets(source_base_dir, static_path):
             os.makedirs(destination_dir, exist_ok=True)
             logging.debug(f"Ensured directory exists: {destination_dir}")
             
-            # Copy all files in this directory
+            # Copy all files in this directory (excluding app icons which are handled separately)
+            app_icon_names = {
+                'appIcon_2x.png', 'appIcon.png', 'appIconAlt_2x.png',
+                'appIconAlt.png', 'appLogo.png', 'appLogo_2x.png'
+            }
+            
             for file in files:
+                # Skip app icons as they're copied to a different location
+                if file in app_icon_names:
+                    logging.debug(f"Skipping app icon {file} (handled separately)")
+                    continue
+                    
                 source_file_path = os.path.join(root, file)
                 destination_file_path = os.path.join(destination_dir, file)
                 
@@ -248,6 +258,64 @@ def copy_static_assets(source_base_dir, static_path):
         logging.error(f"Error walking through static folder {source_static_folder}: {e}")
     
     logging.info("Static asset copying process completed.")
+
+
+def copy_app_icons(source_base_dir, app_static_path):
+    """
+    Copies Splunk app icons from the 'static' folder in the source directory to the app's static directory.
+    
+    Args:
+        source_base_dir (str): The root directory where the source 'static' folder is located.
+                                E.g., '/path/to/your/project'
+        app_static_path (pathlib.Path or str): The absolute path to the app's static directory.
+                                                E.g., '/path/to/your/output_app/static'
+    """
+    source_static_folder = os.path.join(source_base_dir, 'static')
+    
+    if not os.path.isdir(source_static_folder):
+        logging.info(f"No 'static' folder found in source directory: {source_base_dir}. Skipping app icon copy.")
+        return
+    
+    # Define the predefined Splunk app icon names
+    app_icon_names = {
+        'appIcon_2x.png',
+        'appIcon.png',
+        'appIconAlt_2x.png',
+        'appIconAlt.png',
+        'appLogo.png',
+        'appLogo_2x.png'
+    }
+    
+    # Convert to string if it's a Path object
+    target_app_static_folder = str(app_static_path)
+    
+    # Ensure the target directory exists
+    os.makedirs(target_app_static_folder, exist_ok=True)
+    
+    icons_found = []
+    
+    try:
+        # Walk through the source static folder looking for app icons
+        for root, dirs, files in os.walk(source_static_folder):
+            for file in files:
+                if file in app_icon_names:
+                    source_file_path = os.path.join(root, file)
+                    destination_file_path = os.path.join(target_app_static_folder, file)
+                    
+                    try:
+                        shutil.copy2(source_file_path, destination_file_path)
+                        logging.info(f"Copied app icon: {file} to {destination_file_path}")
+                        icons_found.append(file)
+                    except Exception as e:
+                        logging.error(f"Failed to copy app icon {source_file_path} to {destination_file_path}: {e}")
+    
+    except Exception as e:
+        logging.error(f"Error searching for app icons in {source_static_folder}: {e}")
+    
+    if icons_found:
+        logging.info(f"App icon copying process completed. Found and copied {len(icons_found)} icons: {icons_found}")
+    else:
+        logging.info("No app icons found in static folder.")
 
 
 def process_download_links(html_content, md_files_path, static_path, app_dir, course_title=None):
