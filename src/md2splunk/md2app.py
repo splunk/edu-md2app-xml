@@ -283,7 +283,7 @@ def main():
     # --- Call the new, robust image copying function ---
     logging.info("Copying images...")
     copy_images_with_subfolders(
-        source_base_dir=source_path,
+        source_base_dir=md_files_path,  # Look for images where the markdown files are
         final_images_target_dir=images_path # Pass the already calculated correct target
     )
     # --- END IMAGE COPYING CALL ---
