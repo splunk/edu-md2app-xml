@@ -7,7 +7,7 @@ import sys
 import pathlib
 import ntpath
 import logging
-import importlib.resources # <--- THIS IS THE FIX: Ensure importlib is imported here
+import importlib.resources 
 
 # Import necessary functions from your other modules
 from md2splunk.xml_generator import generate_nav, generate_guides
