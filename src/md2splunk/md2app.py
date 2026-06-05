@@ -42,12 +42,6 @@ check_for_updates = 0
 [ui]
 is_visible = true
 label = {course_title}
-
-[access]
-read = *
-write = admin,ess_admin
-owner = nobody
-roles = admin,ess_admin,ess_user
         
         '''
     app_dot_conf_path = pathlib.Path(default_path, 'app.conf')
